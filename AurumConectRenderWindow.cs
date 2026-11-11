@@ -263,8 +263,7 @@ namespace AurumConect
             catch (Exception exception)
             {
                 WriteLog("Error abriendo ventana: " + exception);
-                RhinoApp.WriteLine("AURUM CONECT: no se pudo abrir la ventana integrada: {0}", exception.Message);
-                RhinoApp.WriteLine("AURUM CONECT: no se pudo abrir la ventana integrada. Revisa el registro local.");
+                RhinoApp.WriteLine("AURUM CONECT: no se pudo abrir la ventana integrada: {0}. Revisa el registro local.", exception.Message);
             }
         }
 
@@ -311,7 +310,7 @@ namespace AurumConect
                 SetStatus("Runtime detectado. Creando entorno Chromium…", false);
                 string userData = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "WebView2", "1.0.6");
+                    "AurumLab", "AurumConect", "WebView2", "1.0.9");
                 Directory.CreateDirectory(userData);
                 WriteLog("Perfil de datos: " + userData);
 
@@ -374,7 +373,7 @@ namespace AurumConect
                         popupUri.Host.Equals("tallerdeljoyero.com", StringComparison.OrdinalIgnoreCase))
                         core.Navigate(popupUri.ToString());
                     else
-                        SetStatus("Se bloqueó una ventana externa para mantenerte dentro de AURUM RENDER.", false);
+                        args.Handled = false;
                 };
 
                 SetStatus("Abriendo AURUM RENDER…", false);
@@ -385,7 +384,7 @@ namespace AurumConect
             {
                 _browserReady = false;
                 WriteLog("ERROR INIT NATIVE: " + exception);
-                SetStatus("No se pudo iniciar el navegador integrado: " + exception.Message, true);
+                SetStatus("No se pudo preparar el visor integrado: " + exception.Message, true);
                 RhinoApp.WriteLine("AURUM CONECT 1.0.9: error WebView2. Registro: {0}", LogPath);
                 RhinoApp.WriteLine(exception.ToString());
             }
