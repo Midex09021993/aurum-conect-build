@@ -13,6 +13,7 @@ namespace AurumConect
     {
         private static readonly string[] AllowedOrigins = { "https://tallerdeljoyero.com", "https://www.tallerdeljoyero.com" };
         private const long MaxFileBytes = 100L * 1024L * 1024L;
+        private const int TransferBufferBytes = 64 * 1024;
         private readonly TcpListener _listener;
         private readonly string _filePath;
         private readonly string _token;
@@ -162,33 +163,62 @@ namespace AurumConect
                 WriteResponse(stream, 410, "Gone", "La transferencia expiró. Actualiza el diseño desde Rhino.");
                 return;
             }
-            if (Interlocked.CompareExchange(ref _consumed, 1, 0) != 0)
+            if (Volatile.Read(ref _consumed) == 1)
             {
-                WriteResponse(stream, 410, "Gone", "Esta transferencia ya fue utilizada.");
+                WriteResponse(stream, 410, "Gone", "Esta transferencia ya fue completada.");
                 return;
             }
 
+            bool responseStarted = false;
             try
             {
-                byte[] file = File.ReadAllBytes(_filePath);
-                string header = "HTTP/1.1 200 OK\r\n" +
-                    "Access-Control-Allow-Origin: " + allowedOrigin + "\r\n" +
-                    "Vary: Origin\r\n" +
-                    "Content-Type: application/octet-stream\r\n" +
-                    "Content-Disposition: attachment; filename=\"aurum-conect.3dm\"\r\n" +
-                    "Content-Length: " + file.Length + "\r\n" +
-                    "Cache-Control: no-store, no-cache, must-revalidate\r\n" +
-                    "Pragma: no-cache\r\n" +
-                    "X-Content-Type-Options: nosniff\r\n" +
-                    "Connection: close\r\n\r\n";
-                byte[] headerBytesArray = Encoding.ASCII.GetBytes(header);
-                stream.Write(headerBytesArray, 0, headerBytesArray.Length);
-                stream.Write(file, 0, file.Length);
-                stream.Flush();
+                // Transfiere por bloques para evitar cargar hasta 100 MB en memoria.
+                // El archivo y el token solo se consumen cuando el envío completo termina.
+                using (var file = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, TransferBufferBytes, FileOptions.SequentialScan))
+                {
+                    long fileLength = file.Length;
+                    if (fileLength <= 0 || fileLength > MaxFileBytes)
+                    {
+                        WriteResponse(stream, 413, "Payload Too Large", "El archivo supera el límite seguro de 100 MB o está vacío.");
+                        return;
+                    }
+
+                    string header = "HTTP/1.1 200 OK\r\n" +
+                        "Access-Control-Allow-Origin: " + allowedOrigin + "\r\n" +
+                        "Vary: Origin\r\n" +
+                        "Content-Type: application/octet-stream\r\n" +
+                        "Content-Disposition: attachment; filename=\"aurum-conect.3dm\"\r\n" +
+                        "Content-Length: " + fileLength + "\r\n" +
+                        "Cache-Control: no-store, no-cache, must-revalidate\r\n" +
+                        "Pragma: no-cache\r\n" +
+                        "X-Content-Type-Options: nosniff\r\n" +
+                        "Connection: close\r\n\r\n";
+                    byte[] headerBytesArray = Encoding.ASCII.GetBytes(header);
+                    stream.Write(headerBytesArray, 0, headerBytesArray.Length);
+                    responseStarted = true;
+
+                    byte[] buffer = new byte[TransferBufferBytes];
+                    long remaining = fileLength;
+                    while (remaining > 0)
+                    {
+                        int read = file.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+                        if (read <= 0) throw new EndOfStreamException("El archivo cambió durante la transferencia.");
+                        stream.Write(buffer, 0, read);
+                        remaining -= read;
+                    }
+                    stream.Flush();
+                }
+
+                Interlocked.Exchange(ref _consumed, 1);
             }
-            catch
+            catch (Exception)
             {
-                try { WriteResponse(stream, 500, "Internal Server Error", "No se pudo leer el archivo temporal."); } catch { }
+                // Si el cliente corta la conexión, no se consume el token ni se borra
+                // el archivo: el navegador puede reintentar dentro de la ventana de 3 min.
+                if (!responseStarted)
+                {
+                    try { WriteResponse(stream, 500, "Internal Server Error", "No se pudo leer el archivo temporal."); } catch { }
+                }
             }
         }
 
