@@ -28,7 +28,7 @@ namespace AurumConect
 
             layout.AddRow(CreateLabel("AURUM CONECT", 16, true, Gold));
             layout.AddRow(CreateLabel("MATRIXGOLD 3.1  ·  RHINO 7", 9, true, TextMuted));
-            layout.AddRow(CreateLabel("Envía una copia de la geometría seleccionada a AURUM Render.", 10, false, TextMain));
+            layout.AddRow(CreateLabel("Envía tu diseño desde Rhino. AURUM RENDER lo recibe automáticamente.", 10, false, TextMain));
 
             var connectButton = CreateButton("CONECTAR A AURUM LAB", SurfaceRaised, TextMain, 38);
             connectButton.Click += (_, __) => OpenAurumLogin();
