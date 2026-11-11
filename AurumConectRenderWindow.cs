@@ -305,7 +305,7 @@ namespace AurumConect
 
         private void UpdateBrowserBounds()
         {
-            if (_controller == null || _controller.IsDisposed) return;
+            if (_controller == null) return;
             try
             {
                 _controller.Bounds = new Rectangle(0, 0, _browserHost.ClientSize.Width, _browserHost.ClientSize.Height);
