@@ -28,7 +28,7 @@ namespace AurumConect
                 AppDomain.CurrentDomain.AssemblyResolve += ResolveEmbeddedDependency;
                 PrepareEmbeddedWebView2Loader();
                 Panels.RegisterPanel(this, typeof(AurumConectPanel), "AURUM CONECT", null);
-                RhinoApp.WriteLine("AURUM CONECT 1.0.2 cargado desde un único .RHP. Ejecuta AurumConect para abrir el panel.");
+                RhinoApp.WriteLine("AURUM CONECT 1.0.3 cargado desde un único .RHP. Ejecuta AurumConect para abrir el panel.");
                 return LoadReturnCode.Success;
             }
             catch (Exception exception)
@@ -41,7 +41,8 @@ namespace AurumConect
         private static Assembly ResolveEmbeddedDependency(object sender, ResolveEventArgs args)
         {
             AssemblyName requested = new AssemblyName(args.Name);
-            if (!requested.Name.StartsWith("Microsoft.Web.WebView2.", StringComparison.OrdinalIgnoreCase))
+            if (String.IsNullOrEmpty(requested.Name) ||
+                !requested.Name.StartsWith("Microsoft.Web.WebView2.", StringComparison.OrdinalIgnoreCase))
                 return null;
 
             string resourceName = "AurumConect.Embedded." + requested.Name + ".dll";
@@ -64,7 +65,7 @@ namespace AurumConect
             Assembly owner = typeof(AurumConectPlugin).Assembly;
             string root = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "AurumLab", "AurumConect", "Runtime", "1.0.2");
+                "AurumLab", "AurumConect", "Runtime", "1.0.3");
             Directory.CreateDirectory(root);
             string loaderPath = Path.Combine(root, "WebView2Loader.dll");
 
@@ -86,7 +87,8 @@ namespace AurumConect
 
             _webView2LoaderHandle = LoadLibrary(loaderPath);
             if (_webView2LoaderHandle == IntPtr.Zero)
-                throw new InvalidOperationException("Windows no pudo cargar el componente WebView2 x64. Código: " + Marshal.GetLastWin32Error() + ".");
+                throw new InvalidOperationException("Windows no pudo cargar WebView2Loader x64. Código Win32: " + Marshal.GetLastWin32Error() + ".");
+            RhinoApp.WriteLine("AURUM CONECT 1.0.3: WebView2Loader x64 preparado.");
         }
     }
 }
