@@ -20,6 +20,8 @@ namespace AurumConect
         private readonly Button _retryButton;
         private readonly Button _openBrowserButton;
         private Task _initializationTask;
+        private readonly System.Windows.Forms.Timer _startupTimer;
+        private bool _startupRequested;
         private bool _browserReady;
         private bool _navigationFailed;
 
@@ -35,6 +37,7 @@ namespace AurumConect
 
         private AurumConectRenderWindow(string url)
         {
+            WriteLog("Constructor iniciado.");
             _initialUrl = String.IsNullOrWhiteSpace(url) ? DefaultRenderUrl : NormalizeUrl(url);
             Text = "AURUM RENDER · AURUM CONECT";
             Width = 1280;
@@ -44,6 +47,7 @@ namespace AurumConect
             BackColor = Color.FromArgb(247, 246, 243);
             ShowIcon = true;
 
+            WriteLog("Configurando formulario y controles.");
             _browser = new WebView2 { Dock = DockStyle.Fill, Visible = false };
             Controls.Add(_browser);
 
@@ -74,7 +78,7 @@ namespace AurumConect
                 BackColor = Color.FromArgb(215, 181, 111),
                 FlatStyle = FlatStyle.Flat
             };
-            _retryButton.Click += async (_, __) => await StartInitializationAsync("Reintento solicitado por el usuario.");
+            _retryButton.Click += async (_, __) => { _startupRequested = false; await RequestInitializationAsync("Reintento solicitado por el usuario."); };
 
             _openBrowserButton = new Button
             {
@@ -96,13 +100,31 @@ namespace AurumConect
 
             FormClosed += (_, __) =>
             {
+                if (_startupTimer != null) _startupTimer.Dispose();
                 if (ReferenceEquals(_instance, this)) _instance = null;
                 WriteLog("Ventana cerrada por el usuario.");
             };
 
-            // BeginInvoke permite que WinForms pinte primero la ventana y actualice el estado
-            // antes de entrar en las llamadas nativas de WebView2.
-            Shown += (_, __) => BeginInvoke(new Action(async () => await StartInitializationAsync("Ventana mostrada.")));
+            _startupTimer = new System.Windows.Forms.Timer { Interval = 350 };
+            _startupTimer.Tick += async (_, __) =>
+            {
+                _startupTimer.Stop();
+                WriteLog("Temporizador de arranque ejecutado; handle=" + IsHandleCreated + ", visible=" + Visible + ".");
+                await RequestInitializationAsync("Temporizador de arranque.");
+            };
+            Load += (_, __) =>
+            {
+                WriteLog("Evento Load ejecutado; handle=" + IsHandleCreated + ".");
+                SetStatus("Ventana lista. Preparando WebView2…", false);
+            };
+            Shown += (_, __) =>
+            {
+                WriteLog("Evento Shown ejecutado; handle=" + IsHandleCreated + ".");
+                _startupTimer.Start();
+            };
+            HandleCreated += (_, __) => WriteLog("HandleCreated ejecutado.");
+            HandleDestroyed += (_, __) => WriteLog("HandleDestroyed ejecutado.");
+            WriteLog("Constructor completado.");
         }
 
         internal static void Open(string url)
@@ -148,8 +170,20 @@ namespace AurumConect
             return parsed.ToString();
         }
 
+        private async Task RequestInitializationAsync(string reason)
+        {
+            if (_startupRequested && _initializationTask != null && !_initializationTask.IsCompleted)
+            {
+                WriteLog("Solicitud duplicada ignorada: " + reason);
+                return;
+            }
+            _startupRequested = true;
+            await StartInitializationAsync(reason);
+        }
+
         private async Task StartInitializationAsync(string reason)
         {
+            WriteLog("StartInitializationAsync invocado: " + reason);
             if (_browserReady) return;
             if (_initializationTask != null && !_initializationTask.IsCompleted)
             {
@@ -297,7 +331,7 @@ namespace AurumConect
                 return;
             }
             SetStatus("Preparando el navegador integrado…", false);
-            _ = StartInitializationAsync("Se solicitó navegación antes de inicializar WebView2.");
+            _ = RequestInitializationAsync("Se solicitó navegación antes de inicializar WebView2.");
         }
     }
 }
