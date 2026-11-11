@@ -28,27 +28,24 @@ namespace AurumConect
 
             layout.AddRow(CreateLabel("AURUM CONECT", 16, true, Gold));
             layout.AddRow(CreateLabel("MATRIXGOLD 3.1  ·  RHINO 7", 9, true, TextMuted));
-            layout.AddRow(CreateLabel("Envía tu diseño desde Rhino. AURUM RENDER lo recibe automáticamente.", 10, false, TextMain));
+            layout.AddRow(CreateLabel("Abre AURUM RENDER y carga automáticamente una copia completa del documento Rhino activo.", 10, false, TextMain));
 
             var connectButton = CreateButton("CONECTAR A AURUM LAB", SurfaceRaised, TextMain, 38);
             connectButton.Click += (_, __) => OpenAurumLogin();
             layout.AddRow(connectButton);
 
             var renderButton = CreateButton("ABRIR AURUM RENDER", SurfaceRaised, Gold, 38);
-            renderButton.Click += (_, __) => AurumConectRenderWindow.Open("https://tallerdeljoyero.com/aurum-render");
+            renderButton.Text = "ABRIR AURUM RENDER · CARGAR DOCUMENTO";
+            renderButton.Click += (_, __) => RhinoApp.RunScript("_AurumConectActualizar", false);
             layout.AddRow(renderButton);
 
-            var updateButton = CreateButton("ENVIAR DISEÑO", Gold, Color.FromArgb(28, 28, 28), 42);
-            updateButton.Click += (_, __) => RhinoApp.RunScript("_AurumConectActualizar", false);
-            layout.AddRow(updateButton);
-
-            _status = CreateLabel("Estado: esperando actualización", 9, false, TextMuted);
+            _status = CreateLabel("Estado: listo para cargar el documento completo", 9, false, TextMuted);
             layout.AddRow(_status);
             layout.AddRow(CreateLabel(
                 "El acceso se realiza en la página oficial de AURUM LAB. Tus credenciales nunca se guardan en Rhino ni en este complemento.",
                 9, false, TextMuted));
             layout.AddRow(CreateLabel(
-                "AURUM RENDER se abre en una ventana Chromium vinculada a Rhino. Puedes mantenerla junto al área CAD o maximizarla.",
+                "Al abrir AURUM RENDER se transfiere una copia local del documento Rhino completo. No necesitas seleccionar objetos ni pulsar un botón de envío adicional.",
                 9, false, TextMuted));
 
             Content = new Scrollable
