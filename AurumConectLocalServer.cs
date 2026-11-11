@@ -60,7 +60,14 @@ namespace AurumConect
                     {
                         client.ReceiveTimeout = 5000;
                         client.SendTimeout = 10000;
-                        using (NetworkStream stream = client.GetStream()) HandleRequest(stream);
+                        using (NetworkStream stream = client.GetStream())
+                        {
+                            // Una desconexión antes de completar las cabeceras no debe
+                            // terminar el listener: conserva el token para el siguiente intento.
+                            try { HandleRequest(stream); }
+                            catch (IOException) { }
+                            catch (SocketException) { }
+                        }
                     }
                     if (Volatile.Read(ref _consumed) == 1) break;
                 }
