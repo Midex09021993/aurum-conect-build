@@ -237,18 +237,14 @@ namespace AurumConect
                 WriteLog("Runtime detectado: " + runtimeVersion);
                 SetStatus("Runtime detectado (" + runtimeVersion + "). Preparando Chromium…", false);
 
-                string userData = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "WebView2", "1.0.4");
-                Directory.CreateDirectory(userData);
-                WriteLog("Perfil WebView2: " + userData);
-
-                WriteLog("Creando entorno WebView2…");
-                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, userData);
-                WriteLog("Entorno WebView2 creado.");
-
+                WriteLog("Biblioteca WinForms WebView2 cargada: " + typeof(WebView2).Assembly.FullName);
+                WriteLog("Inicializando WebView2 con la sobrecarga compatible EnsureCoreWebView2Async()…");
                 SetStatus("Inicializando el motor Chromium…", false);
-                await _browser.EnsureCoreWebView2Async(environment);
+
+                // Usar la sobrecarga sin parámetros evita depender de un overload
+                // que no está presente en la versión de WebView2.WinForms que Rhino carga.
+                await _browser.EnsureCoreWebView2Async();
+                WriteLog("EnsureCoreWebView2Async() completado.");
 
                 CoreWebView2 core = _browser.CoreWebView2;
                 if (core == null) throw new InvalidOperationException("WebView2 no creó el núcleo del navegador.");
