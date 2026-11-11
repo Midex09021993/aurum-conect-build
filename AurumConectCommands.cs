@@ -38,7 +38,6 @@ namespace AurumConect
                 options.IncludeBitmapTable = true;
                 options.IncludeHistory = true;
                 options.SuppressDialogBoxes = true;
-                options.UseCompression = true;
 
                 if (!doc.Write3dmFile(outputPath, options) || !File.Exists(outputPath))
                 {
