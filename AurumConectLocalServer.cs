@@ -122,6 +122,13 @@ namespace AurumConect
                 return;
             }
 
+            string expectedPath = "/transfer?token=" + _token;
+            if (!String.Equals(parts[1], expectedPath, StringComparison.Ordinal))
+            {
+                WriteResponse(stream, 401, "Unauthorized", "Token inválido.");
+                return;
+            }
+
             // Chromium puede exigir preflight para una solicitud desde HTTPS hacia loopback.
             // Se autoriza únicamente el origen oficial y el método GET, sin abrir otros métodos.
             if (parts[0] == "OPTIONS")
@@ -148,12 +155,6 @@ namespace AurumConect
             if (transferEncoding != null || (contentLength != null && contentLength != "0"))
             {
                 WriteResponse(stream, 400, "Bad Request", "No se admite contenido en la solicitud.");
-                return;
-            }
-            string expectedPath = "/transfer?token=" + _token;
-            if (!String.Equals(parts[1], expectedPath, StringComparison.Ordinal))
-            {
-                WriteResponse(stream, 401, "Unauthorized", "Token inválido.");
                 return;
             }
             if (DateTime.UtcNow >= _expiresAt)
