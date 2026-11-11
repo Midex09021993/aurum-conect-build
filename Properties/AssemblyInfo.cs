@@ -8,7 +8,7 @@ using Rhino.PlugIns;
 [assembly: AssemblyCompany("Taller del Joyero")]
 [assembly: AssemblyProduct("AURUM CONECT")]
 [assembly: AssemblyCopyright("Copyright © Taller del Joyero")]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.9.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: PlugInDescription(DescriptionType.Organization, "Taller del Joyero")]
 [assembly: PlugInDescription(DescriptionType.Email, "soporte@tallerdeljoyero.com")]
