@@ -37,3 +37,7 @@ GitHub Actions compila .NET Framework 4.8 x64, valida la cabecera PE y la presen
 No se almacenan credenciales ni secretos en este repositorio. El canal local de transferencia escucha únicamente en loopback, usa un token aleatorio de un solo uso y expira a los tres minutos. El archivo temporal tiene un límite de 100 MB.
 
 Este repositorio es público para aprovechar ejecutores estándar de GitHub Actions. No contiene el código de AURUM RENDER ni secretos del repositorio privado.
+
+
+## Versión 1.0.2
+Incluye diagnóstico de inicialización y navegación de WebView2, pantalla de carga y recuperación mediante reintento o navegador externo.
