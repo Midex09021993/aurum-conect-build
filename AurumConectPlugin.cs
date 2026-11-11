@@ -13,6 +13,7 @@ namespace AurumConect
     {
         public static AurumConectPlugin Instance { get; private set; }
         private static IntPtr _webView2LoaderHandle = IntPtr.Zero;
+        private const string NativeLoaderResource = "AurumConect.Embedded.WebView2Loader.dll";
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr LoadLibrary(string fileName);
@@ -23,51 +24,69 @@ namespace AurumConect
         {
             try
             {
-                RegisterLocalWebView2Dependencies();
+                AppDomain.CurrentDomain.AssemblyResolve -= ResolveEmbeddedDependency;
+                AppDomain.CurrentDomain.AssemblyResolve += ResolveEmbeddedDependency;
+                PrepareEmbeddedWebView2Loader();
                 Panels.RegisterPanel(this, typeof(AurumConectPanel), "AURUM CONECT", null);
-                RhinoApp.WriteLine("AURUM CONECT 1.0 cargado. Ejecuta AurumConect para abrir el panel.");
+                RhinoApp.WriteLine("AURUM CONECT 1.0 cargado desde un único .RHP. Ejecuta AurumConect para abrir el panel.");
                 return LoadReturnCode.Success;
             }
             catch (Exception exception)
             {
-                errorMessage = exception.Message;
+                errorMessage = "AURUM CONECT no pudo inicializar sus componentes integrados: " + exception.Message;
                 return LoadReturnCode.ErrorShowDialog;
             }
         }
 
-        private static void RegisterLocalWebView2Dependencies()
-        {
-            string pluginDirectory = Path.GetDirectoryName(typeof(AurumConectPlugin).Assembly.Location);
-            if (String.IsNullOrWhiteSpace(pluginDirectory))
-                throw new InvalidOperationException("No se pudo determinar la carpeta de instalación de AURUM CONECT.");
-
-            AppDomain.CurrentDomain.AssemblyResolve -= ResolveWebView2Assembly;
-            AppDomain.CurrentDomain.AssemblyResolve += ResolveWebView2Assembly;
-
-            string nativeLoader = Path.Combine(pluginDirectory, "WebView2Loader.dll");
-            if (!File.Exists(nativeLoader))
-            {
-                RhinoApp.WriteLine("AURUM CONECT: falta WebView2Loader.dll junto al complemento.");
-                return;
-            }
-
-            if (_webView2LoaderHandle == IntPtr.Zero)
-            {
-                _webView2LoaderHandle = LoadLibrary(nativeLoader);
-                if (_webView2LoaderHandle == IntPtr.Zero)
-                    throw new InvalidOperationException("No se pudo cargar WebView2Loader.dll. Error de Windows: " + Marshal.GetLastWin32Error() + ".");
-            }
-        }
-
-        private static Assembly ResolveWebView2Assembly(object sender, ResolveEventArgs args)
+        private static Assembly ResolveEmbeddedDependency(object sender, ResolveEventArgs args)
         {
             AssemblyName requested = new AssemblyName(args.Name);
             if (!requested.Name.StartsWith("Microsoft.Web.WebView2.", StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            string pluginDirectory = Path.GetDirectoryName(typeof(AurumConectPlugin).Assembly.Location);
-            string candidate = Path.Combine(pluginDirectory, requested.Name + ".dll");
-            return File.Exists(candidate) ? Assembly.LoadFrom(candidate) : null;
+            string resourceName = "AurumConect.Embedded." + requested.Name + ".dll";
+            Assembly owner = typeof(AurumConectPlugin).Assembly;
+            using (Stream resource = owner.GetManifestResourceStream(resourceName))
+            {
+                if (resource == null) return null;
+                using (var buffer = new MemoryStream())
+                {
+                    resource.CopyTo(buffer);
+                    return Assembly.Load(buffer.ToArray());
+                }
+            }
+        }
+
+        private static void PrepareEmbeddedWebView2Loader()
+        {
+            if (_webView2LoaderHandle != IntPtr.Zero) return;
+
+            Assembly owner = typeof(AurumConectPlugin).Assembly;
+            string root = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AurumLab", "AurumConect", "Runtime", "1.0.0");
+            Directory.CreateDirectory(root);
+            string loaderPath = Path.Combine(root, "WebView2Loader.dll");
+
+            using (Stream resource = owner.GetManifestResourceStream(NativeLoaderResource))
+            {
+                if (resource == null)
+                    throw new InvalidOperationException("El archivo nativo WebView2Loader no está integrado en el complemento.");
+
+                bool writeFile = !File.Exists(loaderPath) || new FileInfo(loaderPath).Length != resource.Length;
+                if (writeFile)
+                {
+                    string temporaryPath = loaderPath + ".tmp";
+                    using (var output = new FileStream(temporaryPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                        resource.CopyTo(output);
+                    if (File.Exists(loaderPath)) File.Delete(loaderPath);
+                    File.Move(temporaryPath, loaderPath);
+                }
+            }
+
+            _webView2LoaderHandle = LoadLibrary(loaderPath);
+            if (_webView2LoaderHandle == IntPtr.Zero)
+                throw new InvalidOperationException("Windows no pudo cargar el componente WebView2 x64. Código: " + Marshal.GetLastWin32Error() + ".");
         }
     }
 }
