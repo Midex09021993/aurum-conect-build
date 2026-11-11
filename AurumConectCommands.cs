@@ -84,7 +84,7 @@ namespace AurumConect
                 return Rhino.Commands.Result.Failure;
             }
 
-            RhinoApp.WriteLine("AURUM CONECT: transferencia local preparada ({0} objetos). Completa la recepción desde Aurum Render.", exported);
+            RhinoApp.WriteLine("AURUM CONECT: transferencia local preparada ({0} objetos). AURUM RENDER iniciará la recepción automáticamente.", exported);
             return Rhino.Commands.Result.Success;
         }
     }
