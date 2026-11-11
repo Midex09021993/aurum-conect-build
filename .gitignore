@@ -1,0 +1,8 @@
+bin/
+obj/
+package/
+artifacts/
+Output/
+*.user
+*.suo
+*.tmp
