@@ -62,6 +62,11 @@ namespace AurumConect
             {
                 string userData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AURUM-LAB", "AurumConect", "WebView2");
                 Directory.CreateDirectory(userData);
+                // WebView2Loader.dll ya se extrajo desde el recurso privado del .RHP al iniciar el plugin.
+                // El Runtime Evergreen de Microsoft Edge sigue siendo un requisito del sistema.
+                string runtimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
+                if (String.IsNullOrWhiteSpace(runtimeVersion))
+                    throw new InvalidOperationException("No se detectó Microsoft Edge WebView2 Runtime. Instala el Runtime Evergreen y vuelve a abrir Rhino.");
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, userData);
                 await _browser.EnsureCoreWebView2Async(environment);
                 _browser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
@@ -77,7 +82,7 @@ namespace AurumConect
             catch (Exception exception)
             {
                 MessageBox.Show(this,
-                    "No se pudo iniciar Microsoft Edge WebView2. Comprueba que el Runtime de Microsoft Edge WebView2 esté instalado.\r\n\r\n" + exception.Message,
+                    "AURUM CONECT está instalado correctamente, pero no se pudo iniciar el visor integrado. Comprueba que Microsoft Edge WebView2 Runtime esté instalado y actualizado.\r\n\r\n" + exception.Message,
                     "AURUM CONECT · WebView2", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 AurumConectPanel.OpenUrl(_initialUrl);
             }
