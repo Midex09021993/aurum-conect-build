@@ -1,32 +1,39 @@
-# AURUM CONECT — Build público de Rhino 7
+# AURUM CONECT — Complemento de archivo único para Rhino 7
 
-Este repositorio contiene únicamente el proyecto necesario para compilar el complemento AURUM CONECT para Rhino 7 de 64 bits. La plataforma AURUM LAB y su código de producto permanecen en el repositorio privado.
+Este repositorio contiene el proyecto necesario para compilar AURUM CONECT para Rhino 7 de 64 bits. La plataforma AURUM LAB y el motor AURUM RENDER permanecen fuera de este repositorio.
 
-## Qué genera
+## Distribución
 
-Un instalador Windows x64:
+El resultado oficial es un único archivo:
 
-\`AURUM-CONECT-Setup-Rhino7-1.0.0.exe\`
+`AurumConect-Rhino7-1.0.0.rhp`
 
-Incluye el complemento .RHP, bibliotecas administradas Microsoft WebView2 y WebView2Loader.dll x64. No distribuye RhinoCommon ni componentes de McNeel/MatrixGold.
+Las bibliotecas administradas Microsoft WebView2 Core/WinForms y el cargador nativo WebView2Loader x64 se incrustan como recursos dentro del propio ensamblado. Al cargar el plugin, el cargador nativo se extrae a una carpeta de datos local de AURUM LAB para que Windows pueda cargarlo. No se distribuyen DLL adicionales junto al RHP.
 
-## Compilación automática
+## Requisitos
 
-GitHub Actions se ejecuta al cambiar main o manualmente desde Actions. Restaura NuGet, compila .NET Framework 4.8 x64, valida la cabecera PE, reúne las dependencias y genera el instalador con Inno Setup. El EXE se publica como artefacto y como asset de la release estable v1.0.0.
+- Windows x64
+- Rhino 7 x64
+- MatrixGold 3.1 dentro de Rhino 7 para el flujo CAD
+- Microsoft Edge WebView2 Evergreen Runtime para la ventana Chromium integrada
+- Conexión a Internet para acceder a AURUM LAB
 
-## Requisitos de uso
+WebView2 Runtime es un componente de sistema de Microsoft y no se puede incrustar de forma soportada dentro del .RHP. Si falta, el plugin informa del requisito y abre la página en el navegador predeterminado como alternativa; Rhino no debe cerrarse por ese motivo.
 
-- Windows 64 bits
-- Rhino 7
-- MatrixGold 3.1 dentro de Rhino 7
-- Microsoft Edge WebView2 Runtime
+## Instalación
 
-## Estado
+1. Descarga el archivo `.rhp`.
+2. En Rhino 7, abre `_PlugInManager`.
+3. Usa la opción para instalar/cargar un complemento y selecciona `AurumConect-Rhino7-1.0.0.rhp`.
+4. Ejecuta `AurumConect` en la línea de comandos de Rhino.
+5. Si la ventana integrada no inicia, instala o actualiza Microsoft Edge WebView2 Evergreen Runtime y reinicia Rhino.
 
-El código de integración y el empaquetado requieren validación de compilación y pruebas reales de extremo a extremo en Rhino 7 + MatrixGold 3.1. No se debe considerar certificado hasta completar esas pruebas.
+## Compilación y validación
+
+GitHub Actions compila .NET Framework 4.8 x64, valida la cabecera PE y la presencia de los tres recursos WebView2 dentro del ensamblado, y publica únicamente el archivo RHP. La validación automática de recursos no sustituye una prueba real en Rhino 7 + MatrixGold 3.1.
 
 ## Seguridad
 
 No se almacenan credenciales ni secretos en este repositorio. El canal local de transferencia escucha únicamente en loopback, usa un token aleatorio de un solo uso y expira a los tres minutos. El archivo temporal tiene un límite de 100 MB.
 
-Este repositorio es público para aprovechar ejecutores estándar de GitHub Actions en proyectos públicos. No contiene el código de AURUM RENDER ni secretos del repositorio privado.
+Este repositorio es público para aprovechar ejecutores estándar de GitHub Actions. No contiene el código de AURUM RENDER ni secretos del repositorio privado.
