@@ -31,13 +31,13 @@ namespace AurumConect
             {
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.5.log");
+                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.6.log");
             }
         }
 
         private AurumConectRenderWindow(string url)
         {
-            WriteLog("1.0.5 constructor iniciado; integración CoreWebView2Controller nativa.");
+            WriteLog("1.0.6 constructor iniciado; integración CoreWebView2Controller nativa.");
             _initialUrl = String.IsNullOrWhiteSpace(url) ? DefaultRenderUrl : NormalizeUrl(url);
             Text = "AURUM RENDER · AURUM CONECT";
             Width = 1280;
@@ -227,7 +227,7 @@ namespace AurumConect
                 SetStatus("Runtime detectado. Creando entorno Chromium…", false);
                 string userData = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "WebView2", "1.0.5");
+                    "AurumLab", "AurumConect", "WebView2", "1.0.6");
                 Directory.CreateDirectory(userData);
                 WriteLog("Perfil de datos: " + userData);
 
@@ -268,7 +268,7 @@ namespace AurumConect
                         _loadingPanel.Visible = false;
                         _controller.IsVisible = true;
                         WriteLog("Navegación completada: " + args.WebErrorStatus);
-                        RhinoApp.WriteLine("AURUM CONECT 1.0.5: AURUM RENDER cargó en el controlador WebView2 nativo.");
+                        RhinoApp.WriteLine("AURUM CONECT 1.0.6: AURUM RENDER cargó en el controlador WebView2 nativo.");
                     }
                     else
                     {
@@ -298,7 +298,7 @@ namespace AurumConect
                 _browserReady = false;
                 WriteLog("ERROR INIT NATIVE: " + exception);
                 SetStatus("No se pudo iniciar el navegador integrado: " + exception.Message, true);
-                RhinoApp.WriteLine("AURUM CONECT 1.0.5: error WebView2. Registro: {0}", LogPath);
+                RhinoApp.WriteLine("AURUM CONECT 1.0.6: error WebView2. Registro: {0}", LogPath);
                 RhinoApp.WriteLine(exception.ToString());
             }
         }
