@@ -11,7 +11,7 @@ namespace AurumConect
 {
     internal sealed class AurumConectLocalServer : IDisposable
     {
-        private const string AllowedOrigin = "https://tallerdeljoyero.com";
+        private static readonly string[] AllowedOrigins = { "https://tallerdeljoyero.com", "https://www.tallerdeljoyero.com" };
         private const long MaxFileBytes = 100L * 1024L * 1024L;
         private readonly TcpListener _listener;
         private readonly string _filePath;
@@ -79,7 +79,6 @@ namespace AurumConect
             string origin = null;
             string contentLength = null;
             string transferEncoding = null;
-            string requestedPrivateNetwork = null;
             int headerBytes = 0;
 
             using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, true))
@@ -106,13 +105,13 @@ namespace AurumConect
                     if (key.Equals("Origin", StringComparison.OrdinalIgnoreCase)) origin = value;
                     if (key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) contentLength = value;
                     if (key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase)) transferEncoding = value;
-                    if (key.Equals("Access-Control-Request-Private-Network", StringComparison.OrdinalIgnoreCase)) requestedPrivateNetwork = value;
                 }
             }
 
-            if (!String.Equals(origin, AllowedOrigin, StringComparison.Ordinal))
+            string allowedOrigin = Array.Find(AllowedOrigins, value => String.Equals(value, origin, StringComparison.Ordinal));
+            if (allowedOrigin == null)
             {
-                WriteResponse(stream, 403, "Forbidden", "Origen no autorizado.");
+                WriteResponse(stream, 403, "Forbidden", "Origen no autorizado: " + (origin ?? "(sin Origin)"));
                 return;
             }
             string[] parts = (requestLine ?? "").Split(' ');
@@ -134,9 +133,10 @@ namespace AurumConect
             if (parts[0] == "OPTIONS")
             {
                 string preflight = "HTTP/1.1 204 No Content\r\n" +
-                    "Access-Control-Allow-Origin: " + AllowedOrigin + "\r\n" +
+                    "Access-Control-Allow-Origin: " + allowedOrigin + "\r\n" +
                     "Access-Control-Allow-Methods: GET, OPTIONS\r\n" +
                     "Access-Control-Allow-Headers: content-type\r\n" +
+                    "Access-Control-Max-Age: 60\r\n" +
                     "Access-Control-Allow-Private-Network: true\r\n" +
                     "Vary: Origin\r\n" +
                     "Content-Length: 0\r\n" +
