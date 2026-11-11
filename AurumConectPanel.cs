@@ -35,7 +35,7 @@ namespace AurumConect
             layout.AddRow(connectButton);
 
             var renderButton = CreateButton("ABRIR AURUM RENDER", SurfaceRaised, Gold, 38);
-            renderButton.Click += (_, __) => AurumConectRenderWindow.Open("https://www.tallerdeljoyero.com/auth?returnTo=aurum-render");
+            renderButton.Click += (_, __) => AurumConectRenderWindow.Open("https://tallerdeljoyero.com/aurum-render");
             layout.AddRow(renderButton);
 
             var updateButton = CreateButton("ENVIAR DISEÑO", Gold, Color.FromArgb(28, 28, 28), 42);
@@ -85,7 +85,7 @@ namespace AurumConect
 
         internal static void OpenAurumLogin()
         {
-            OpenUrl("https://www.tallerdeljoyero.com/auth?returnTo=aurum-render");
+            OpenUrl("https://tallerdeljoyero.com/aurum-render");
         }
 
         internal static void OpenUrl(string url)
