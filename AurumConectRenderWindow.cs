@@ -31,7 +31,7 @@ namespace AurumConect
             {
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.3.log");
+                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.4.log");
             }
         }
 
@@ -183,26 +183,49 @@ namespace AurumConect
 
         private async Task StartInitializationAsync(string reason)
         {
-            WriteLog("StartInitializationAsync invocado: " + reason);
-            if (_browserReady) return;
-            if (_initializationTask != null && !_initializationTask.IsCompleted)
+            WriteLog("START ENTER | reason=" + reason
+                + " | browserReady=" + _browserReady
+                + " | taskNull=" + (_initializationTask == null)
+                + " | taskStatus=" + (_initializationTask == null ? "null" : _initializationTask.Status.ToString()));
+
+            if (_browserReady)
             {
-                WriteLog("Inicialización ya en curso; se omite duplicado. Motivo: " + reason);
+                WriteLog("START EXIT | motivo=browserReady ya es true.");
                 return;
             }
 
-            _initializationTask = InitializeBrowserAsync(reason);
-            await _initializationTask;
+            if (_initializationTask != null && !_initializationTask.IsCompleted)
+            {
+                WriteLog("START EXIT | ya existe tarea activa: " + _initializationTask.Status);
+                return;
+            }
+
+            try
+            {
+                SetStatus("Iniciando diagnóstico de WebView2…", false);
+                WriteLog("START | antes de invocar InitializeBrowserAsync.");
+                Task initialization = InitializeBrowserAsync(reason);
+                WriteLog("START | InitializeBrowserAsync devolvió una tarea: " + initialization.Status);
+                _initializationTask = initialization;
+                await initialization;
+                WriteLog("START | tarea finalizada: " + initialization.Status);
+            }
+            catch (Exception exception)
+            {
+                WriteLog("START EXCEPTION | " + exception);
+                SetStatus("Error al iniciar WebView2: " + exception.Message, true);
+            }
         }
 
         private async Task InitializeBrowserAsync(string reason)
         {
-            WriteLog("Inicio de inicialización. " + reason);
-            SetStatus("Comprobando Microsoft Edge WebView2 Runtime…", false);
-            await Task.Yield();
-
+            WriteLog("INIT ENTER | " + reason);
             try
             {
+                SetStatus("Comprobando Microsoft Edge WebView2 Runtime…", false);
+                WriteLog("INIT | estado inicial actualizado; antes de ceder el hilo.");
+                await Task.Yield();
+                WriteLog("INIT | reanudación después de Task.Yield.");
                 WriteLog("Proceso: " + Environment.Is64BitProcess + " bits=" + (Environment.Is64BitProcess ? "x64" : "x86"));
                 WriteLog("SO: " + Environment.OSVersion.VersionString);
                 WriteLog("Directorio de la aplicación: " + AppDomain.CurrentDomain.BaseDirectory);
@@ -216,7 +239,7 @@ namespace AurumConect
 
                 string userData = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "WebView2", "1.0.3");
+                    "AurumLab", "AurumConect", "WebView2", "1.0.4");
                 Directory.CreateDirectory(userData);
                 WriteLog("Perfil WebView2: " + userData);
 
@@ -251,7 +274,7 @@ namespace AurumConect
                         _loadingPanel.Visible = false;
                         _browser.BringToFront();
                         WriteLog("Navegación completada correctamente: " + _initialUrl);
-                        RhinoApp.WriteLine("AURUM CONECT 1.0.3: AURUM RENDER cargó correctamente en WebView2.");
+                        RhinoApp.WriteLine("AURUM CONECT 1.0.4: AURUM RENDER cargó correctamente en WebView2.");
                     }
                     else
                     {
@@ -284,7 +307,7 @@ namespace AurumConect
                 _browserReady = false;
                 WriteLog("EXCEPCIÓN DE INICIALIZACIÓN: " + exception);
                 SetStatus("No se pudo iniciar WebView2: " + exception.Message, true);
-                RhinoApp.WriteLine("AURUM CONECT 1.0.3: error WebView2. Revisa el log en: {0}", LogPath);
+                RhinoApp.WriteLine("AURUM CONECT 1.0.4: error WebView2. Revisa el log en: {0}", LogPath);
                 RhinoApp.WriteLine(exception.ToString());
             }
         }
