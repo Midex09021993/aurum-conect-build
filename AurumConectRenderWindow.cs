@@ -17,7 +17,7 @@ namespace AurumConect
         private readonly Panel _loadingPanel;
         private readonly Label _statusLabel;
         private readonly Button _retryButton;
-        private readonly Button _openBrowserButton;
+        private readonly ProgressBar _progressIndicator;
         private readonly System.Windows.Forms.Timer _startupTimer;
         private Task _initializationTask;
         private CoreWebView2Environment _environment;
@@ -31,13 +31,13 @@ namespace AurumConect
             {
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.6.log");
+                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.9.log");
             }
         }
 
         private AurumConectRenderWindow(string url)
         {
-            WriteLog("1.0.6 constructor iniciado; integración CoreWebView2Controller nativa.");
+            WriteLog("1.0.9 constructor iniciado; integración CoreWebView2Controller nativa.");
             _initialUrl = String.IsNullOrWhiteSpace(url) ? DefaultRenderUrl : NormalizeUrl(url);
             Text = "AURUM RENDER · AURUM CONECT";
             Width = 1280;
@@ -61,34 +61,107 @@ namespace AurumConect
                 BackColor = Color.FromArgb(247, 246, 243)
             };
 
+            // Tarjeta de bienvenida: identidad visual AURUM LAB, sin acciones
+            // para abandonar el visor integrado ni abrir navegadores externos.
+            var card = new Panel
+            {
+                Size = new Size(660, 360),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            var goldAccent = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(658, 5),
+                BackColor = Color.FromArgb(190, 151, 73)
+            };
+
+            var brandMark = new Panel
+            {
+                Location = new Point(42, 38),
+                Size = new Size(48, 48),
+                BackColor = Color.FromArgb(34, 39, 47)
+            };
+            var brandLetter = new Label
+            {
+                Text = "A",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Georgia", 25, FontStyle.Regular),
+                ForeColor = Color.FromArgb(222, 190, 124),
+                BackColor = Color.Transparent
+            };
+            brandMark.Controls.Add(brandLetter);
+
+            var eyebrow = new Label
+            {
+                Text = "A U R U M   L A B     /     JEWELRY WORKFLOW",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                ForeColor = Color.FromArgb(166, 132, 67),
+                Location = new Point(108, 42)
+            };
+
             var title = new Label
             {
                 Text = "AURUM RENDER",
                 AutoSize = true,
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
-                ForeColor = Color.FromArgb(55, 49, 39),
-                Location = new Point(30, 30)
+                Font = new Font("Segoe UI", 25, FontStyle.Bold),
+                ForeColor = Color.FromArgb(39, 43, 49),
+                Location = new Point(105, 61)
+            };
+
+            var subtitle = new Label
+            {
+                Text = "Tu estudio profesional de visualización de joyería.",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 10, FontStyle.Regular),
+                ForeColor = Color.FromArgb(112, 112, 108),
+                Location = new Point(44, 126)
+            };
+
+            var divider = new Panel
+            {
+                Location = new Point(44, 166),
+                Size = new Size(570, 1),
+                BackColor = Color.FromArgb(235, 231, 222)
             };
 
             _statusLabel = new Label
             {
-                Text = "Preparando el navegador integrado…",
+                Text = "Preparando tu espacio de trabajo…",
                 AutoSize = false,
-                Font = new Font("Segoe UI", 10),
-                ForeColor = Color.FromArgb(75, 75, 75),
-                Location = new Point(32, 82),
-                Size = new Size(1000, 58)
+                Font = new Font("Segoe UI", 10, FontStyle.Regular),
+                ForeColor = Color.FromArgb(70, 74, 78),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Location = new Point(44, 190),
+                Size = new Size(570, 28)
+            };
+
+            _progressIndicator = new ProgressBar
+            {
+                Location = new Point(44, 228),
+                Size = new Size(570, 5),
+                Style = ProgressBarStyle.Marquee,
+                MarqueeAnimationSpeed = 24,
+                ForeColor = Color.FromArgb(190, 151, 73),
+                BackColor = Color.FromArgb(241, 238, 231)
             };
 
             _retryButton = new Button
             {
-                Text = "REINTENTAR",
+                Text = "REINTENTAR CONEXIÓN",
                 Visible = false,
-                Location = new Point(32, 150),
-                Size = new Size(150, 38),
-                BackColor = Color.FromArgb(215, 181, 111),
-                FlatStyle = FlatStyle.Flat
+                Location = new Point(44, 258),
+                Size = new Size(190, 40),
+                BackColor = Color.FromArgb(39, 44, 52),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Cursor = Cursors.Hand
             };
+            _retryButton.FlatAppearance.BorderSize = 0;
             _retryButton.Click += async (_, __) =>
             {
                 _startupRequested = false;
@@ -96,21 +169,32 @@ namespace AurumConect
                 await RequestInitializationAsync("Reintento manual.");
             };
 
-            _openBrowserButton = new Button
+            var footer = new Label
             {
-                Text = "ABRIR EN CHROME / NAVEGADOR",
-                Location = new Point(195, 150),
-                Size = new Size(245, 38),
-                BackColor = Color.FromArgb(39, 44, 52),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Text = "TALLER DEL JOYERO  ·  AURUM LAB",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 8, FontStyle.Regular),
+                ForeColor = Color.FromArgb(160, 157, 149),
+                Location = new Point(44, 322)
             };
-            _openBrowserButton.Click += (_, __) => AurumConectPanel.OpenUrl(_initialUrl);
 
-            _loadingPanel.Controls.Add(title);
-            _loadingPanel.Controls.Add(_statusLabel);
-            _loadingPanel.Controls.Add(_retryButton);
-            _loadingPanel.Controls.Add(_openBrowserButton);
+            card.Controls.Add(goldAccent);
+            card.Controls.Add(brandMark);
+            card.Controls.Add(eyebrow);
+            card.Controls.Add(title);
+            card.Controls.Add(subtitle);
+            card.Controls.Add(divider);
+            card.Controls.Add(_statusLabel);
+            card.Controls.Add(_progressIndicator);
+            card.Controls.Add(_retryButton);
+            card.Controls.Add(footer);
+            _loadingPanel.Controls.Add(card);
+            _loadingPanel.Resize += (_, __) =>
+            {
+                card.Location = new Point(
+                    Math.Max(20, (_loadingPanel.ClientSize.Width - card.Width) / 2),
+                    Math.Max(20, (_loadingPanel.ClientSize.Height - card.Height) / 2));
+            };
             Controls.Add(_loadingPanel);
             _loadingPanel.BringToFront();
 
@@ -180,7 +264,7 @@ namespace AurumConect
             {
                 WriteLog("Error abriendo ventana: " + exception);
                 RhinoApp.WriteLine("AURUM CONECT: no se pudo abrir la ventana integrada: {0}", exception.Message);
-                AurumConectPanel.OpenUrl(url);
+                RhinoApp.WriteLine("AURUM CONECT: no se pudo abrir la ventana integrada. Revisa el registro local.");
             }
         }
 
@@ -268,25 +352,29 @@ namespace AurumConect
                         _loadingPanel.Visible = false;
                         _controller.IsVisible = true;
                         WriteLog("Navegación completada: " + args.WebErrorStatus);
-                        RhinoApp.WriteLine("AURUM CONECT 1.0.6: AURUM RENDER cargó en el controlador WebView2 nativo.");
+                        RhinoApp.WriteLine("AURUM CONECT 1.0.9: AURUM RENDER cargó en el controlador WebView2 nativo.");
                     }
                     else
                     {
                         string message = "No se pudo cargar AURUM RENDER. Estado: " + args.WebErrorStatus + ".";
                         WriteLog(message);
-                        SetStatus(message + " Puedes reintentar o abrirlo en Chrome.", true);
+                        SetStatus(message + " Comprueba tu conexión e inténtalo nuevamente.", true);
                     }
                 };
                 core.ProcessFailed += (_, args) =>
                 {
                     string message = "El proceso Chromium falló: " + args.ProcessFailedKind;
                     WriteLog(message);
-                    SetStatus(message + " Puedes reintentar o abrirlo en Chrome.", true);
+                    SetStatus(message + " Inténtalo nuevamente.", true);
                 };
                 core.NewWindowRequested += (_, args) =>
                 {
                     args.Handled = true;
-                    AurumConectPanel.OpenUrl(args.Uri);
+                    if (Uri.TryCreate(args.Uri, UriKind.Absolute, out Uri popupUri) &&
+                        popupUri.Host.Equals("tallerdeljoyero.com", StringComparison.OrdinalIgnoreCase))
+                        core.Navigate(popupUri.ToString());
+                    else
+                        SetStatus("Se bloqueó una ventana externa para mantenerte dentro de AURUM RENDER.", false);
                 };
 
                 SetStatus("Abriendo AURUM RENDER…", false);
@@ -298,7 +386,7 @@ namespace AurumConect
                 _browserReady = false;
                 WriteLog("ERROR INIT NATIVE: " + exception);
                 SetStatus("No se pudo iniciar el navegador integrado: " + exception.Message, true);
-                RhinoApp.WriteLine("AURUM CONECT 1.0.6: error WebView2. Registro: {0}", LogPath);
+                RhinoApp.WriteLine("AURUM CONECT 1.0.9: error WebView2. Registro: {0}", LogPath);
                 RhinoApp.WriteLine(exception.ToString());
             }
         }
@@ -325,6 +413,7 @@ namespace AurumConect
 
             _statusLabel.Text = message;
             _retryButton.Visible = showRetry;
+            _progressIndicator.Visible = !showRetry;
             _loadingPanel.Visible = true;
             _loadingPanel.BringToFront();
         }
