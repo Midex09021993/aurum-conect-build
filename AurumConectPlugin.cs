@@ -28,7 +28,7 @@ namespace AurumConect
                 AppDomain.CurrentDomain.AssemblyResolve += ResolveEmbeddedDependency;
                 PrepareEmbeddedWebView2Loader();
                 Panels.RegisterPanel(this, typeof(AurumConectPanel), "AURUM CONECT", null);
-                RhinoApp.WriteLine("AURUM CONECT 1.0 cargado desde un único .RHP. Ejecuta AurumConect para abrir el panel.");
+                RhinoApp.WriteLine("AURUM CONECT 1.0.2 cargado desde un único .RHP. Ejecuta AurumConect para abrir el panel.");
                 return LoadReturnCode.Success;
             }
             catch (Exception exception)
@@ -64,7 +64,7 @@ namespace AurumConect
             Assembly owner = typeof(AurumConectPlugin).Assembly;
             string root = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "AurumLab", "AurumConect", "Runtime", "1.0.0");
+                "AurumLab", "AurumConect", "Runtime", "1.0.2");
             Directory.CreateDirectory(root);
             string loaderPath = Path.Combine(root, "WebView2Loader.dll");
 
