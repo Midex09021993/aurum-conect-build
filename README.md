@@ -43,3 +43,5 @@ Este repositorio es público para aprovechar ejecutores estándar de GitHub Acti
 Incluye diagnóstico de inicialización y navegación de WebView2, pantalla de carga y recuperación mediante reintento o navegador externo.
 
 <!-- AURUM CONECT BUILD RETRY 2026-11-11 -->
+
+<!-- AURUM CONECT BUILD RETRY 2 · 2026-11-11 -->
