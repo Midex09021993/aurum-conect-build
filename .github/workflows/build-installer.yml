@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publicar el RHP en el release estable (solo tras validación manual en Rhino)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -61,6 +67,7 @@ jobs:
           retention-days: 30
 
       - name: Publish single RHP release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.9
