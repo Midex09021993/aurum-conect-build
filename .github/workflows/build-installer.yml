@@ -48,31 +48,31 @@ jobs:
             if (-not $strings.Contains($resourceName)) { throw "No se encontró el recurso incrustado: $resourceName" }
           }
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          Copy-Item $plugin "artifacts\\AurumConect-Rhino7-1.0.3.rhp" -Force
-          $size = (Get-Item "artifacts\\AurumConect-Rhino7-1.0.3.rhp").Length
+          Copy-Item $plugin "artifacts\\AurumConect-Rhino7-1.0.4.rhp" -Force
+          $size = (Get-Item "artifacts\\AurumConect-Rhino7-1.0.4.rhp").Length
           Write-Host "RHP x64 único validado: $size bytes. No se distribuyen DLL externas."
 
       - name: Upload single RHP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AurumConect-Rhino7-1.0.3-RHP
-          path: artifacts/AurumConect-Rhino7-1.0.3.rhp
+          name: AurumConect-Rhino7-1.0.4-RHP
+          path: artifacts/AurumConect-Rhino7-1.0.4.rhp
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish single RHP release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.3
-          name: AURUM CONECT Rhino 7 · v1.0.3 Beta
+          tag_name: v1.0.4
+          name: AURUM CONECT Rhino 7 · v1.0.4 Beta
           body: |
             Complemento de archivo único para Rhino 7 x64 y MatrixGold 3.1.
 
-            Mejoras de diagnóstico WebView2: inicialización diferida después de mostrar la ventana, estados visibles por fase, captura detallada de excepciones y registro local en %LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.3.log.
+            Mejoras de diagnóstico WebView2: inicialización diferida después de mostrar la ventana, estados visibles por fase, captura detallada de excepciones y registro local en %LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.4.log.
 
             WebView2.Core, WebView2.WinForms y WebView2Loader x64 permanecen integrados dentro del único .RHP. Requisito externo: Microsoft Edge WebView2 Evergreen Runtime x64.
 
             Beta: requiere prueba real de extremo a extremo en Rhino 7 + MatrixGold 3.1.
-          files: artifacts/AurumConect-Rhino7-1.0.3.rhp
+          files: artifacts/AurumConect-Rhino7-1.0.4.rhp
           overwrite_files: true
           make_latest: true
