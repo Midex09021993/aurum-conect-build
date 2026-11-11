@@ -70,7 +70,7 @@ jobs:
 
             Mejoras de diagnóstico WebView2: inicialización diferida después de mostrar la ventana, estados visibles por fase, captura detallada de excepciones y registro local en %LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.5.log.
 
-            WebView2.Core, WebView2.WinForms y WebView2Loader x64 permanecen integrados dentro del único .RHP. Requisito externo: Microsoft Edge WebView2 Evergreen Runtime x64.
+            WebView2.Core y WebView2Loader x64 permanecen integrados dentro del único .RHP. El navegador se crea mediante CoreWebView2Controller nativo, sin depender del wrapper WebView2.WinForms ni de EnsureCoreWebView2Async. Requisito externo: Microsoft Edge WebView2 Evergreen Runtime x64.
 
             Beta: requiere prueba real de extremo a extremo en Rhino 7 + MatrixGold 3.1.
           files: artifacts/AurumConect-Rhino7-1.0.5.rhp
