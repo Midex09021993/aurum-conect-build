@@ -1,4 +1,4 @@
-name: AURUM CONECT · Rhino 7 Installer
+name: AURUM CONECT · Rhino 7 RHP
 
 on:
   push:
@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-installer:
-    name: Build and package Windows x64 installer
+  build-rhp:
+    name: Build and validate single-file Rhino plugin
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -29,96 +29,50 @@ jobs:
       - name: Restore NuGet dependencies
         run: dotnet restore AurumConect.csproj --verbosity minimal
 
-      - name: Build Rhino 7 plugin (.NET Framework 4.8, x64)
+      - name: Build self-contained Rhino 7 plugin (.NET Framework 4.8, x64)
         run: dotnet build AurumConect.csproj --configuration Release --no-restore --verbosity minimal
 
-      - name: Validate plugin and collect WebView2 runtime files
+      - name: Validate single RHP payload
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $output = Join-Path $PWD "bin\Release\net48"
-          $plugin = Join-Path $output "AurumConect.rhp"
+          $plugin = "bin\Release\net48\AurumConect.rhp"
           if (-not (Test-Path $plugin)) { throw "No se generó AurumConect.rhp." }
-
           $bytes = [IO.File]::ReadAllBytes($plugin)
-          if ($bytes.Length -lt 4096 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "El .RHP no tiene una cabecera PE válida." }
+          if ($bytes.Length -lt 100000 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "El .RHP no contiene un ensamblado PE válido o no incluye sus dependencias." }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
-          if ($peOffset -lt 0x40 -or $peOffset + 6 -gt $bytes.Length) { throw "Desplazamiento PE inválido." }
           if ($bytes[$peOffset] -ne 0x50 -or $bytes[$peOffset+1] -ne 0x45 -or $bytes[$peOffset+2] -ne 0 -or $bytes[$peOffset+3] -ne 0) { throw "Firma PE inválida." }
-          $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
-          if ($machine -ne 0x8664) { throw ("Se esperaba x64 (0x8664), se obtuvo 0x{0:X4}." -f $machine) }
-
-          $package = Join-Path $PWD "package"
-          if (Test-Path $package) { Remove-Item $package -Recurse -Force }
-          New-Item -ItemType Directory -Path $package | Out-Null
-          Copy-Item $plugin (Join-Path $package "AurumConect.rhp")
-
-          foreach ($name in @("Microsoft.Web.WebView2.Core.dll", "Microsoft.Web.WebView2.WinForms.dll")) {
-            $candidate = Get-ChildItem $output -Recurse -File -Filter $name | Select-Object -First 1
-            if (-not $candidate) { throw "Falta dependencia administrada: $name" }
-            Copy-Item $candidate.FullName (Join-Path $package $name)
+          if ([BitConverter]::ToUInt16($bytes, $peOffset + 4) -ne 0x8664) { throw "El complemento no es x64." }
+          $strings = [Text.Encoding]::ASCII.GetString($bytes)
+          foreach ($resourceName in @("AurumConect.Embedded.Microsoft.Web.WebView2.Core.dll", "AurumConect.Embedded.Microsoft.Web.WebView2.WinForms.dll", "AurumConect.Embedded.WebView2Loader.dll")) {
+            if (-not $strings.Contains($resourceName)) { throw "No se encontró el recurso incrustado: $resourceName" }
           }
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Copy-Item $plugin "artifacts\AurumConect-Rhino7-1.0.0.rhp" -Force
+          $size = (Get-Item "artifacts\AurumConect-Rhino7-1.0.0.rhp").Length
+          Write-Host "RHP x64 único validado: $size bytes. No se distribuyen DLL externas."
 
-          $nugetWebView = Join-Path $env:USERPROFILE ".nuget\packages\microsoft.web.webview2\1.0.1020.30"
-          $loader = Get-ChildItem $nugetWebView -Recurse -File -Filter "WebView2Loader.dll" |
-            Where-Object { $_.FullName -match "[\\/]runtimes[\\/]win-x64[\\/]native[\\/]" } |
-            Select-Object -First 1
-          if (-not $loader) { throw "No se encontró WebView2Loader.dll para win-x64 en el paquete NuGet fijado." }
-          Copy-Item $loader.FullName (Join-Path $package "WebView2Loader.dll")
-
-          $required = @("AurumConect.rhp", "Microsoft.Web.WebView2.Core.dll", "Microsoft.Web.WebView2.WinForms.dll", "WebView2Loader.dll")
-          foreach ($name in $required) {
-            $file = Join-Path $package $name
-            if (-not (Test-Path $file) -or (Get-Item $file).Length -le 0) { throw "Paquete incompleto: $name" }
-          }
-          Write-Host "Complemento x64 y dependencias validadas."
-
-      - name: Ensure Inno Setup is available
-        shell: pwsh
-        run: |
-          $candidates = @(
-            (Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe"),
-            (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe")
-          )
-          $existing = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $existing) {
-            choco install innosetup --yes --no-progress
-            if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar Inno Setup." }
-          }
-
-      - name: Compile single-file installer
-        shell: pwsh
-        run: |
-          $iscc = @(
-            (Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe"),
-            (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe")
-          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $iscc) { throw "No se encontró ISCC.exe en las rutas estándar de Inno Setup." }
-          & $iscc "/Qp" "installer\AurumConect.iss"
-          if ($LASTEXITCODE -ne 0) { throw "Inno Setup no pudo generar el instalador." }
-          $installer = "artifacts\AURUM-CONECT-Setup-Rhino7-1.0.0.exe"
-          if (-not (Test-Path $installer)) { throw "No se generó el EXE esperado: $installer" }
-          if ((Get-Item $installer).Length -lt 100000) { throw "El EXE generado es demasiado pequeño." }
-
-      - name: Upload installer artifact
+      - name: Upload single RHP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AURUM-CONECT-Setup-Rhino7-1.0.0
-          path: artifacts/AURUM-CONECT-Setup-Rhino7-1.0.0.exe
+          name: AurumConect-Rhino7-1.0.0-RHP
+          path: artifacts/AurumConect-Rhino7-1.0.0.rhp
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish installer release
+      - name: Publish single RHP release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.0
           name: AURUM CONECT Rhino 7 · v1.0.0 Beta
           body: |
-            Instalador beta de AURUM CONECT para Rhino 7 de 64 bits y MatrixGold 3.1.
+            Complemento de archivo único para Rhino 7 x64 y MatrixGold 3.1.
 
-            Requiere Microsoft Edge WebView2 Runtime. Cierra Rhino antes de instalar y reinícialo después.
+            WebView2.Core, WebView2.WinForms y WebView2Loader x64 están integrados dentro del .RHP. El complemento extrae el cargador nativo a la carpeta local de la aplicación al iniciar.
 
-            Esta versión necesita pruebas reales de transferencia en cada entorno Rhino/MatrixGold.
-          files: artifacts/AURUM-CONECT-Setup-Rhino7-1.0.0.exe
+            Requisito externo del sistema: Microsoft Edge WebView2 Evergreen Runtime. Si no está instalado, el complemento informa del requisito y abre AURUM RENDER en el navegador predeterminado como alternativa.
+
+            Beta: requiere pruebas reales de extremo a extremo en Rhino 7 + MatrixGold 3.1.
+          files: artifacts/AurumConect-Rhino7-1.0.0.rhp
           overwrite_files: true
           make_latest: true
