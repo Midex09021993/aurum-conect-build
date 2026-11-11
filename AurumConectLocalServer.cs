@@ -43,7 +43,7 @@ namespace AurumConect
 
         internal string CreateHandoffUrl()
         {
-            return AllowedOrigin + "/auth?returnTo=aurum-render#aurum-conect=" + Port.ToString() + "." + _token;
+            return AllowedOrigins[0] + "/auth?returnTo=aurum-render#aurum-conect=" + Port.ToString() + "." + _token;
         }
 
         internal void Run() { Task.Run((Action)AcceptLoop); }
@@ -172,7 +172,7 @@ namespace AurumConect
             {
                 byte[] file = File.ReadAllBytes(_filePath);
                 string header = "HTTP/1.1 200 OK\r\n" +
-                    "Access-Control-Allow-Origin: " + AllowedOrigin + "\r\n" +
+                    "Access-Control-Allow-Origin: " + allowedOrigin + "\r\n" +
                     "Vary: Origin\r\n" +
                     "Content-Type: application/octet-stream\r\n" +
                     "Content-Disposition: attachment; filename=\"aurum-conect.3dm\"\r\n" +
