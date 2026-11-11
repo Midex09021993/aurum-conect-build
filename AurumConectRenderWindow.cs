@@ -4,7 +4,6 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
 using Rhino;
 
 namespace AurumConect
@@ -13,17 +12,18 @@ namespace AurumConect
     {
         private const string DefaultRenderUrl = "https://tallerdeljoyero.com/aurum-render";
         private static AurumConectRenderWindow _instance;
-        private readonly WebView2 _browser;
         private readonly string _initialUrl;
+        private readonly Panel _browserHost;
         private readonly Panel _loadingPanel;
         private readonly Label _statusLabel;
         private readonly Button _retryButton;
         private readonly Button _openBrowserButton;
-        private Task _initializationTask;
         private readonly System.Windows.Forms.Timer _startupTimer;
+        private Task _initializationTask;
+        private CoreWebView2Environment _environment;
+        private CoreWebView2Controller _controller;
         private bool _startupRequested;
         private bool _browserReady;
-        private bool _navigationFailed;
 
         private static string LogPath
         {
@@ -31,13 +31,13 @@ namespace AurumConect
             {
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.4.log");
+                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.5.log");
             }
         }
 
         private AurumConectRenderWindow(string url)
         {
-            WriteLog("Constructor iniciado.");
+            WriteLog("1.0.5 constructor iniciado; integración CoreWebView2Controller nativa.");
             _initialUrl = String.IsNullOrWhiteSpace(url) ? DefaultRenderUrl : NormalizeUrl(url);
             Text = "AURUM RENDER · AURUM CONECT";
             Width = 1280;
@@ -45,13 +45,22 @@ namespace AurumConect
             MinimumSize = new Size(900, 600);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Color.FromArgb(247, 246, 243);
-            ShowIcon = true;
 
-            WriteLog("Configurando formulario y controles.");
-            _browser = new WebView2 { Dock = DockStyle.Fill, Visible = false };
-            Controls.Add(_browser);
+            _browserHost = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(247, 246, 243),
+                Visible = true
+            };
+            _browserHost.Resize += (_, __) => UpdateBrowserBounds();
+            Controls.Add(_browserHost);
 
-            _loadingPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(247, 246, 243) };
+            _loadingPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(247, 246, 243)
+            };
+
             var title = new Label
             {
                 Text = "AURUM RENDER",
@@ -60,6 +69,7 @@ namespace AurumConect
                 ForeColor = Color.FromArgb(55, 49, 39),
                 Location = new Point(30, 30)
             };
+
             _statusLabel = new Label
             {
                 Text = "Preparando el navegador integrado…",
@@ -67,8 +77,9 @@ namespace AurumConect
                 Font = new Font("Segoe UI", 10),
                 ForeColor = Color.FromArgb(75, 75, 75),
                 Location = new Point(32, 82),
-                Size = new Size(900, 54)
+                Size = new Size(1000, 58)
             };
+
             _retryButton = new Button
             {
                 Text = "REINTENTAR",
@@ -78,7 +89,12 @@ namespace AurumConect
                 BackColor = Color.FromArgb(215, 181, 111),
                 FlatStyle = FlatStyle.Flat
             };
-            _retryButton.Click += async (_, __) => { _startupRequested = false; await RequestInitializationAsync("Reintento solicitado por el usuario."); };
+            _retryButton.Click += async (_, __) =>
+            {
+                _startupRequested = false;
+                _initializationTask = null;
+                await RequestInitializationAsync("Reintento manual.");
+            };
 
             _openBrowserButton = new Button
             {
@@ -98,32 +114,41 @@ namespace AurumConect
             Controls.Add(_loadingPanel);
             _loadingPanel.BringToFront();
 
-            FormClosed += (_, __) =>
-            {
-                if (_startupTimer != null) _startupTimer.Dispose();
-                if (ReferenceEquals(_instance, this)) _instance = null;
-                WriteLog("Ventana cerrada por el usuario.");
-            };
-
-            _startupTimer = new System.Windows.Forms.Timer { Interval = 350 };
+            _startupTimer = new System.Windows.Forms.Timer { Interval = 400 };
             _startupTimer.Tick += async (_, __) =>
             {
                 _startupTimer.Stop();
-                WriteLog("Temporizador de arranque ejecutado; handle=" + IsHandleCreated + ", visible=" + Visible + ".");
                 await RequestInitializationAsync("Temporizador de arranque.");
             };
+
             Load += (_, __) =>
             {
-                WriteLog("Evento Load ejecutado; handle=" + IsHandleCreated + ".");
+                WriteLog("Load: handle=" + IsHandleCreated + ", hostHandle=" + _browserHost.IsHandleCreated);
                 SetStatus("Ventana lista. Preparando WebView2…", false);
             };
             Shown += (_, __) =>
             {
-                WriteLog("Evento Shown ejecutado; handle=" + IsHandleCreated + ".");
+                WriteLog("Shown: handle=" + IsHandleCreated);
                 _startupTimer.Start();
             };
-            HandleCreated += (_, __) => WriteLog("HandleCreated ejecutado.");
-            HandleDestroyed += (_, __) => WriteLog("HandleDestroyed ejecutado.");
+            FormClosed += (_, __) =>
+            {
+                try
+                {
+                    _startupTimer.Stop();
+                    _startupTimer.Dispose();
+                    if (_controller != null)
+                    {
+                        _controller.Close();
+                        _controller = null;
+                    }
+                }
+                catch (Exception exception) { WriteLog("Error cerrando controlador: " + exception); }
+
+                if (ReferenceEquals(_instance, this)) _instance = null;
+                WriteLog("Ventana cerrada.");
+            };
+
             WriteLog("Constructor completado.");
         }
 
@@ -153,7 +178,7 @@ namespace AurumConect
             }
             catch (Exception exception)
             {
-                WriteLog("Error al abrir la ventana: " + exception);
+                WriteLog("Error abriendo ventana: " + exception);
                 RhinoApp.WriteLine("AURUM CONECT: no se pudo abrir la ventana integrada: {0}", exception.Message);
                 AurumConectPanel.OpenUrl(url);
             }
@@ -165,90 +190,65 @@ namespace AurumConect
             if (!Uri.TryCreate(url, UriKind.Absolute, out parsed) ||
                 (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp))
                 return DefaultRenderUrl;
+
             if (parsed.Host.Equals("www.tallerdeljoyero.com", StringComparison.OrdinalIgnoreCase))
                 return "https://tallerdeljoyero.com" + parsed.PathAndQuery + parsed.Fragment;
+
             return parsed.ToString();
         }
 
         private async Task RequestInitializationAsync(string reason)
         {
-            if (_startupRequested && _initializationTask != null && !_initializationTask.IsCompleted)
+            if (_browserReady || (_initializationTask != null && !_initializationTask.IsCompleted))
             {
-                WriteLog("Solicitud duplicada ignorada: " + reason);
+                WriteLog("Solicitud de inicialización omitida; ready=" + _browserReady
+                    + ", task=" + (_initializationTask == null ? "null" : _initializationTask.Status.ToString()));
                 return;
             }
+
             _startupRequested = true;
-            await StartInitializationAsync(reason);
+            _initializationTask = InitializeNativeControllerAsync(reason);
+            await _initializationTask;
         }
 
-        private async Task StartInitializationAsync(string reason)
+        private async Task InitializeNativeControllerAsync(string reason)
         {
-            WriteLog("START ENTER | reason=" + reason
-                + " | browserReady=" + _browserReady
-                + " | taskNull=" + (_initializationTask == null)
-                + " | taskStatus=" + (_initializationTask == null ? "null" : _initializationTask.Status.ToString()));
-
-            if (_browserReady)
-            {
-                WriteLog("START EXIT | motivo=browserReady ya es true.");
-                return;
-            }
-
-            if (_initializationTask != null && !_initializationTask.IsCompleted)
-            {
-                WriteLog("START EXIT | ya existe tarea activa: " + _initializationTask.Status);
-                return;
-            }
-
-            try
-            {
-                SetStatus("Iniciando diagnóstico de WebView2…", false);
-                WriteLog("START | antes de invocar InitializeBrowserAsync.");
-                Task initialization = InitializeBrowserAsync(reason);
-                WriteLog("START | InitializeBrowserAsync devolvió una tarea: " + initialization.Status);
-                _initializationTask = initialization;
-                await initialization;
-                WriteLog("START | tarea finalizada: " + initialization.Status);
-            }
-            catch (Exception exception)
-            {
-                WriteLog("START EXCEPTION | " + exception);
-                SetStatus("Error al iniciar WebView2: " + exception.Message, true);
-            }
-        }
-
-        private async Task InitializeBrowserAsync(string reason)
-        {
-            WriteLog("INIT ENTER | " + reason);
+            WriteLog("INIT NATIVE ENTER: " + reason);
             try
             {
                 SetStatus("Comprobando Microsoft Edge WebView2 Runtime…", false);
-                WriteLog("INIT | estado inicial actualizado; antes de ceder el hilo.");
                 await Task.Yield();
-                WriteLog("INIT | reanudación después de Task.Yield.");
-                WriteLog("Proceso: " + Environment.Is64BitProcess + " bits=" + (Environment.Is64BitProcess ? "x64" : "x86"));
-                WriteLog("SO: " + Environment.OSVersion.VersionString);
-                WriteLog("Directorio de la aplicación: " + AppDomain.CurrentDomain.BaseDirectory);
 
                 string runtimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
+                WriteLog("Runtime detectado: " + (String.IsNullOrWhiteSpace(runtimeVersion) ? "(ninguno)" : runtimeVersion));
                 if (String.IsNullOrWhiteSpace(runtimeVersion))
-                    throw new InvalidOperationException("No se detectó Microsoft Edge WebView2 Runtime. Instala Evergreen Runtime x64 y reinicia Rhino.");
+                    throw new InvalidOperationException("No se detectó Microsoft Edge WebView2 Runtime. Instala Evergreen Runtime x64.");
 
-                WriteLog("Runtime detectado: " + runtimeVersion);
-                SetStatus("Runtime detectado (" + runtimeVersion + "). Preparando Chromium…", false);
+                SetStatus("Runtime detectado. Creando entorno Chromium…", false);
+                string userData = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "AurumLab", "AurumConect", "WebView2", "1.0.5");
+                Directory.CreateDirectory(userData);
+                WriteLog("Perfil de datos: " + userData);
 
-                WriteLog("Biblioteca WinForms WebView2 cargada: " + typeof(WebView2).Assembly.FullName);
-                WriteLog("Inicializando WebView2 con la sobrecarga compatible EnsureCoreWebView2Async()…");
-                SetStatus("Inicializando el motor Chromium…", false);
+                WriteLog("Creando CoreWebView2Environment…");
+                _environment = await CoreWebView2Environment.CreateAsync(null, userData);
+                WriteLog("CoreWebView2Environment creado.");
 
-                // Usar la sobrecarga sin parámetros evita depender de un overload
-                // que no está presente en la versión de WebView2.WinForms que Rhino carga.
-                await _browser.EnsureCoreWebView2Async();
-                WriteLog("EnsureCoreWebView2Async() completado.");
+                _browserHost.CreateControl();
+                IntPtr parentHandle = _browserHost.Handle;
+                WriteLog("Creando controlador nativo; parent HWND=" + parentHandle);
+                _controller = await _environment.CreateCoreWebView2ControllerAsync(parentHandle);
+                if (_controller == null)
+                    throw new InvalidOperationException("WebView2 no devolvió un controlador nativo.");
 
-                CoreWebView2 core = _browser.CoreWebView2;
-                if (core == null) throw new InvalidOperationException("WebView2 no creó el núcleo del navegador.");
-                WriteLog("CoreWebView2 inicializado correctamente.");
+                WriteLog("CoreWebView2Controller creado correctamente.");
+                _controller.Bounds = new Rectangle(0, 0, _browserHost.ClientSize.Width, _browserHost.ClientSize.Height);
+                _controller.IsVisible = true;
+
+                CoreWebView2 core = _controller.CoreWebView2;
+                if (core == null)
+                    throw new InvalidOperationException("El controlador no contiene CoreWebView2.");
 
                 core.Settings.AreDefaultContextMenusEnabled = true;
                 core.Settings.IsStatusBarEnabled = false;
@@ -257,7 +257,6 @@ namespace AurumConect
 
                 core.NavigationStarting += (_, args) =>
                 {
-                    _navigationFailed = false;
                     WriteLog("Navegación iniciada: " + args.Uri);
                     SetStatus("Conectando con AURUM LAB…", false);
                 };
@@ -265,27 +264,24 @@ namespace AurumConect
                 {
                     if (args.IsSuccess)
                     {
-                        _navigationFailed = false;
-                        _browser.Visible = true;
+                        _browserReady = true;
                         _loadingPanel.Visible = false;
-                        _browser.BringToFront();
-                        WriteLog("Navegación completada correctamente: " + _initialUrl);
-                        RhinoApp.WriteLine("AURUM CONECT 1.0.4: AURUM RENDER cargó correctamente en WebView2.");
+                        _controller.IsVisible = true;
+                        WriteLog("Navegación completada: " + args.WebErrorStatus);
+                        RhinoApp.WriteLine("AURUM CONECT 1.0.5: AURUM RENDER cargó en el controlador WebView2 nativo.");
                     }
                     else
                     {
-                        _navigationFailed = true;
                         string message = "No se pudo cargar AURUM RENDER. Estado: " + args.WebErrorStatus + ".";
-                        WriteLog(message + " URL: " + _initialUrl);
-                        SetStatus(message + " Reintenta o abre la plataforma en tu navegador.", true);
+                        WriteLog(message);
+                        SetStatus(message + " Puedes reintentar o abrirlo en Chrome.", true);
                     }
                 };
                 core.ProcessFailed += (_, args) =>
                 {
-                    _navigationFailed = true;
                     string message = "El proceso Chromium falló: " + args.ProcessFailedKind;
                     WriteLog(message);
-                    SetStatus(message + ". Reintenta o abre AURUM RENDER en tu navegador.", true);
+                    SetStatus(message + " Puedes reintentar o abrirlo en Chrome.", true);
                 };
                 core.NewWindowRequested += (_, args) =>
                 {
@@ -294,18 +290,27 @@ namespace AurumConect
                 };
 
                 SetStatus("Abriendo AURUM RENDER…", false);
-                WriteLog("Solicitando navegación a " + _initialUrl);
-                _browser.Source = new Uri(_initialUrl);
-                _browserReady = true;
+                WriteLog("Navegando a " + _initialUrl);
+                core.Navigate(_initialUrl);
             }
             catch (Exception exception)
             {
                 _browserReady = false;
-                WriteLog("EXCEPCIÓN DE INICIALIZACIÓN: " + exception);
-                SetStatus("No se pudo iniciar WebView2: " + exception.Message, true);
-                RhinoApp.WriteLine("AURUM CONECT 1.0.4: error WebView2. Revisa el log en: {0}", LogPath);
+                WriteLog("ERROR INIT NATIVE: " + exception);
+                SetStatus("No se pudo iniciar el navegador integrado: " + exception.Message, true);
+                RhinoApp.WriteLine("AURUM CONECT 1.0.5: error WebView2. Registro: {0}", LogPath);
                 RhinoApp.WriteLine(exception.ToString());
             }
+        }
+
+        private void UpdateBrowserBounds()
+        {
+            if (_controller == null || _controller.IsDisposed) return;
+            try
+            {
+                _controller.Bounds = new Rectangle(0, 0, _browserHost.ClientSize.Width, _browserHost.ClientSize.Height);
+            }
+            catch (Exception exception) { WriteLog("Error actualizando tamaño del navegador: " + exception.Message); }
         }
 
         private void SetStatus(string message, bool showRetry)
@@ -317,6 +322,7 @@ namespace AurumConect
                 catch (InvalidOperationException) { }
                 return;
             }
+
             _statusLabel.Text = message;
             _retryButton.Visible = showRetry;
             _loadingPanel.Visible = true;
@@ -344,13 +350,15 @@ namespace AurumConect
         private void Navigate(string url)
         {
             string safeUrl = NormalizeUrl(url);
-            if (_browser.CoreWebView2 != null)
+            if (_controller != null && _controller.CoreWebView2 != null)
             {
-                _browser.CoreWebView2.Navigate(safeUrl);
+                _controller.CoreWebView2.Navigate(safeUrl);
                 return;
             }
+
             SetStatus("Preparando el navegador integrado…", false);
-            _ = RequestInitializationAsync("Se solicitó navegación antes de inicializar WebView2.");
+            _startupRequested = false;
+            _ = RequestInitializationAsync("Se solicitó navegación antes de inicializar el controlador.");
         }
     }
 }
