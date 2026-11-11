@@ -11,7 +11,7 @@ namespace AurumConect
 {
     internal sealed class AurumConectLocalServer : IDisposable
     {
-        private const string AllowedOrigin = "https://www.tallerdeljoyero.com";
+        private const string AllowedOrigin = "https://tallerdeljoyero.com";
         private const long MaxFileBytes = 100L * 1024L * 1024L;
         private readonly TcpListener _listener;
         private readonly string _filePath;
@@ -79,6 +79,7 @@ namespace AurumConect
             string origin = null;
             string contentLength = null;
             string transferEncoding = null;
+            string requestedPrivateNetwork = null;
             int headerBytes = 0;
 
             using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, true))
@@ -105,6 +106,7 @@ namespace AurumConect
                     if (key.Equals("Origin", StringComparison.OrdinalIgnoreCase)) origin = value;
                     if (key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) contentLength = value;
                     if (key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase)) transferEncoding = value;
+                    if (key.Equals("Access-Control-Request-Private-Network", StringComparison.OrdinalIgnoreCase)) requestedPrivateNetwork = value;
                 }
             }
 
@@ -114,7 +116,31 @@ namespace AurumConect
                 return;
             }
             string[] parts = (requestLine ?? "").Split(' ');
-            if (parts.Length != 3 || parts[0] != "GET" || parts[2] != "HTTP/1.1")
+            if (parts.Length != 3 || parts[2] != "HTTP/1.1")
+            {
+                WriteResponse(stream, 400, "Bad Request", "Solicitud HTTP inválida.");
+                return;
+            }
+
+            // Chromium puede exigir preflight para una solicitud desde HTTPS hacia loopback.
+            // Se autoriza únicamente el origen oficial y el método GET, sin abrir otros métodos.
+            if (parts[0] == "OPTIONS")
+            {
+                string preflight = "HTTP/1.1 204 No Content\\r\\n" +
+                    "Access-Control-Allow-Origin: " + AllowedOrigin + "\\r\\n" +
+                    "Access-Control-Allow-Methods: GET, OPTIONS\\r\\n" +
+                    "Access-Control-Allow-Headers: content-type\\r\\n" +
+                    "Access-Control-Allow-Private-Network: true\\r\\n" +
+                    "Vary: Origin\\r\\n" +
+                    "Content-Length: 0\\r\\n" +
+                    "Connection: close\\r\\n\\r\\n";
+                byte[] preflightBytes = Encoding.ASCII.GetBytes(preflight);
+                stream.Write(preflightBytes, 0, preflightBytes.Length);
+                stream.Flush();
+                return;
+            }
+
+            if (parts[0] != "GET")
             {
                 WriteResponse(stream, 405, "Method Not Allowed", "Solo se admite GET.");
                 return;
