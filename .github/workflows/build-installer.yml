@@ -48,23 +48,23 @@ jobs:
             if (-not $strings.Contains($resourceName)) { throw "No se encontró el recurso incrustado: $resourceName" }
           }
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          Copy-Item $plugin "artifacts\AurumConect-Rhino7-1.0.1.rhp" -Force
-          $size = (Get-Item "artifacts\AurumConect-Rhino7-1.0.1.rhp").Length
+          Copy-Item $plugin "artifacts\AurumConect-Rhino7-1.0.2.rhp" -Force
+          $size = (Get-Item "artifacts\AurumConect-Rhino7-1.0.2.rhp").Length
           Write-Host "RHP x64 único validado: $size bytes. No se distribuyen DLL externas."
 
       - name: Upload single RHP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AurumConect-Rhino7-1.0.1-RHP
-          path: artifacts/AurumConect-Rhino7-1.0.1.rhp
+          name: AurumConect-Rhino7-1.0.2-RHP
+          path: artifacts/AurumConect-Rhino7-1.0.2.rhp
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish single RHP release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.1
-          name: AURUM CONECT Rhino 7 · v1.0.1 Beta
+          tag_name: v1.0.2
+          name: AURUM CONECT Rhino 7 · v1.0.2 Beta
           body: |
             Complemento de archivo único para Rhino 7 x64 y MatrixGold 3.1.
 
@@ -73,6 +73,6 @@ jobs:
             Requisito externo del sistema: Microsoft Edge WebView2 Evergreen Runtime. Si no está instalado, el complemento informa del requisito y abre AURUM RENDER en el navegador predeterminado como alternativa.
 
             Beta: requiere pruebas reales de extremo a extremo en Rhino 7 + MatrixGold 3.1.
-          files: artifacts/AurumConect-Rhino7-1.0.1.rhp
+          files: artifacts/AurumConect-Rhino7-1.0.2.rhp
           overwrite_files: true
           make_latest: true
