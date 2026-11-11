@@ -133,14 +133,14 @@ namespace AurumConect
             // Se autoriza únicamente el origen oficial y el método GET, sin abrir otros métodos.
             if (parts[0] == "OPTIONS")
             {
-                string preflight = "HTTP/1.1 204 No Content\\r\\n" +
-                    "Access-Control-Allow-Origin: " + AllowedOrigin + "\\r\\n" +
-                    "Access-Control-Allow-Methods: GET, OPTIONS\\r\\n" +
-                    "Access-Control-Allow-Headers: content-type\\r\\n" +
-                    "Access-Control-Allow-Private-Network: true\\r\\n" +
-                    "Vary: Origin\\r\\n" +
-                    "Content-Length: 0\\r\\n" +
-                    "Connection: close\\r\\n\\r\\n";
+                string preflight = "HTTP/1.1 204 No Content\r\n" +
+                    "Access-Control-Allow-Origin: " + AllowedOrigin + "\r\n" +
+                    "Access-Control-Allow-Methods: GET, OPTIONS\r\n" +
+                    "Access-Control-Allow-Headers: content-type\r\n" +
+                    "Access-Control-Allow-Private-Network: true\r\n" +
+                    "Vary: Origin\r\n" +
+                    "Content-Length: 0\r\n" +
+                    "Connection: close\r\n\r\n";
                 byte[] preflightBytes = Encoding.ASCII.GetBytes(preflight);
                 stream.Write(preflightBytes, 0, preflightBytes.Length);
                 stream.Flush();
