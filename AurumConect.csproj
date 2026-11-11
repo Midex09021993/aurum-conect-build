@@ -4,7 +4,7 @@
     <TargetExt>.rhp</TargetExt>
     <AssemblyName>AurumConect</AssemblyName>
     <RootNamespace>AurumConect</RootNamespace>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Company>Taller del Joyero</Company>
     <Product>AURUM CONECT</Product>
     <Description>Panel de conexión entre Rhino 7 / MatrixGold 3.1 y AURUM Render.</Description>
@@ -28,14 +28,11 @@
   <ItemGroup>
     <EmbeddedResource Include="$(PkgMicrosoft_Web_WebView2)\\lib\\net45\\Microsoft.Web.WebView2.Core.dll"
                       LogicalName="AurumConect.Embedded.Microsoft.Web.WebView2.Core.dll" />
-    <EmbeddedResource Include="$(PkgMicrosoft_Web_WebView2)\\lib\\net45\\Microsoft.Web.WebView2.WinForms.dll"
-                      LogicalName="AurumConect.Embedded.Microsoft.Web.WebView2.WinForms.dll" />
     <EmbeddedResource Include="$(PkgMicrosoft_Web_WebView2)\\runtimes\\win-x64\\native\\WebView2Loader.dll"
                       LogicalName="AurumConect.Embedded.WebView2Loader.dll" />
   </ItemGroup>
   <Target Name="ValidateEmbeddedWebView2Payload" BeforeTargets="CoreCompile">
     <Error Condition="!Exists('$(PkgMicrosoft_Web_WebView2)\\lib\\net45\\Microsoft.Web.WebView2.Core.dll')" Text="No se encontró WebView2.Core para incrustar en el RHP." />
-    <Error Condition="!Exists('$(PkgMicrosoft_Web_WebView2)\\lib\\net45\\Microsoft.Web.WebView2.WinForms.dll')" Text="No se encontró WebView2.WinForms para incrustar en el RHP." />
     <Error Condition="!Exists('$(PkgMicrosoft_Web_WebView2)\\runtimes\\win-x64\\native\\WebView2Loader.dll')" Text="No se encontró WebView2Loader x64 para incrustar en el RHP." />
   </Target>
 </Project>
