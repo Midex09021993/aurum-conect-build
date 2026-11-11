@@ -10,6 +10,11 @@ namespace AurumConect
     [System.Runtime.InteropServices.Guid("8D7C9A11-4A2F-46D3-A80B-2D0D9B9A7102")]
     public sealed class AurumConectPanel : Panel
     {
+        private static readonly Color Surface = Color.FromArgb(27, 30, 35);
+        private static readonly Color SurfaceRaised = Color.FromArgb(39, 44, 52);
+        private static readonly Color Gold = Color.FromArgb(215, 181, 111);
+        private static readonly Color TextMain = Color.FromArgb(232, 234, 238);
+        private static readonly Color TextMuted = Color.FromArgb(170, 176, 185);
         private readonly Label _status;
 
         public AurumConectPanel()
@@ -18,67 +23,70 @@ namespace AurumConect
             {
                 Padding = new Padding(16),
                 Spacing = new Size(0, 10),
-                BackgroundColor = Color.FromArgb(27, 30, 35)
+                BackgroundColor = Surface
             };
 
-            layout.AddRow(new Label { Text = "AURUM CONECT", Font = new Font(SystemFont.Bold, 15), TextColor = Color.FromArgb(215, 181, 111) });
-            layout.AddRow(new Label { Text = "MATRIXGOLD 3.1  ·  RHINO 7", TextColor = Color.FromArgb(165, 170, 178) });
-            layout.AddRow(new Label
-            {
-                Text = "Envía una copia de la geometría seleccionada a AURUM Render.",
-                TextColor = Color.FromArgb(205, 208, 213),
-                Wrap = WrapMode.Word
-            });
+            layout.AddRow(CreateLabel("AURUM CONECT", 16, true, Gold));
+            layout.AddRow(CreateLabel("MATRIXGOLD 3.1  ·  RHINO 7", 9, true, TextMuted));
+            layout.AddRow(CreateLabel("Envía una copia de la geometría seleccionada a AURUM Render.", 10, false, TextMain));
 
-            var connectButton = new Button
-            {
-                Text = "CONECTAR A AURUM LAB", Height = 38,
-                BackgroundColor = Color.FromArgb(48, 55, 64),
-                TextColor = Color.FromArgb(235, 225, 202)
-            };
+            var connectButton = CreateButton("CONECTAR A AURUM LAB", SurfaceRaised, TextMain, 38);
             connectButton.Click += (_, __) => OpenAurumLogin();
             layout.AddRow(connectButton);
 
-            var renderButton = new Button
-            {
-                Text = "ABRIR AURUM RENDER", Height = 38,
-                BackgroundColor = Color.FromArgb(48, 55, 64),
-                TextColor = Color.FromArgb(215, 181, 111)
-            };
+            var renderButton = CreateButton("ABRIR AURUM RENDER", SurfaceRaised, Gold, 38);
             renderButton.Click += (_, __) => AurumConectRenderWindow.Open("https://www.tallerdeljoyero.com/auth?returnTo=aurum-render");
             layout.AddRow(renderButton);
 
-            var updateButton = new Button
-            {
-                Text = "ENVIAR DISEÑO", Height = 42,
-                BackgroundColor = Color.FromArgb(184, 143, 63),
-                TextColor = Color.FromArgb(25, 25, 25)
-            };
+            var updateButton = CreateButton("ENVIAR DISEÑO", Gold, Color.FromArgb(28, 28, 28), 42);
             updateButton.Click += (_, __) => RhinoApp.RunScript("_AurumConectActualizar", false);
             layout.AddRow(updateButton);
 
-            _status = new Label
-            {
-                Text = "Estado: esperando actualización",
-                TextColor = Color.FromArgb(165, 170, 178),
-                Wrap = WrapMode.Word
-            };
+            _status = CreateLabel("Estado: esperando actualización", 9, false, TextMuted);
             layout.AddRow(_status);
-            layout.AddRow(new Label
-            {
-                Text = "El acceso se realiza en la página oficial de AURUM LAB. Tus credenciales nunca se guardan en Rhino ni en este complemento.",
-                TextColor = Color.FromArgb(145, 150, 158), Wrap = WrapMode.Word
-            });
-            layout.AddRow(new Label
-            {
-                Text = "AURUM RENDER se abre en una ventana Chromium vinculada a Rhino. Puedes mantenerla junto al área CAD o maximizarla.",
-                TextColor = Color.FromArgb(145, 150, 158), Wrap = WrapMode.Word
-            });
+            layout.AddRow(CreateLabel(
+                "El acceso se realiza en la página oficial de AURUM LAB. Tus credenciales nunca se guardan en Rhino ni en este complemento.",
+                9, false, TextMuted));
+            layout.AddRow(CreateLabel(
+                "AURUM RENDER se abre en una ventana Chromium vinculada a Rhino. Puedes mantenerla junto al área CAD o maximizarla.",
+                9, false, TextMuted));
 
-            Content = new Scrollable { Content = layout, ExpandContentWidth = true };
+            Content = new Scrollable
+            {
+                Content = layout,
+                ExpandContentWidth = true,
+                BackgroundColor = Surface
+            };
+            BackgroundColor = Surface;
         }
 
-        internal static void OpenAurumLogin() { OpenUrl("https://www.tallerdeljoyero.com/auth?returnTo=aurum-render"); }
+        private static Label CreateLabel(string text, float size, bool bold, Color foreground)
+        {
+            return new Label
+            {
+                Text = text,
+                Font = new Font(bold ? SystemFont.Bold : SystemFont.Default, size),
+                TextColor = foreground,
+                BackgroundColor = Surface,
+                Wrap = WrapMode.Word
+            };
+        }
+
+        private static Button CreateButton(string text, Color background, Color foreground, int height)
+        {
+            return new Button
+            {
+                Text = text,
+                Height = height,
+                BackgroundColor = background,
+                TextColor = foreground
+            };
+        }
+
+        internal static void OpenAurumLogin()
+        {
+            OpenUrl("https://www.tallerdeljoyero.com/auth?returnTo=aurum-render");
+        }
 
         internal static void OpenUrl(string url)
         {
