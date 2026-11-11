@@ -1,10 +1,9 @@
 #define MyAppName "AURUM CONECT"
 #define MyAppVersion "1.0.0"
 #define MyPublisher "Taller del Joyero · AURUM LAB"
-#define MyPluginGuid "C8F4D8A1-5A2B-4D8E-9C31-7B7E2A4D9016"
 
 [Setup]
-AppId={{#MyPluginGuid}
+AppId={{C8F4D8A1-5A2B-4D8E-9C31-7B7E2A4D9016}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyPublisher}
