@@ -86,4 +86,17 @@ namespace AurumConect
             return Rhino.Commands.Result.Success;
         }
     }
+    
+    // Short command for opening the integrated viewer without transferring a
+    // new CAD document. Use AurumConectActualizar when a fresh transfer is needed.
+    public sealed class AurumRenderCommand : Rhino.Commands.Command
+    {
+        public override string EnglishName { get { return "AurumRender"; } }
+
+        protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
+        {
+            AurumConectRenderWindow.Open("https://tallerdeljoyero.com/aurum-render");
+            return Rhino.Commands.Result.Success;
+        }
+    }
 }
