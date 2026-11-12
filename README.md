@@ -1,36 +1,48 @@
-# AURUM CONECT — Complemento de archivo único para Rhino 7
+# AURUM CONECT — Rhino 7 + barra nativa AURUM LAB
 
-Este repositorio contiene el proyecto necesario para compilar AURUM CONECT para Rhino 7 de 64 bits. La plataforma AURUM LAB y el motor AURUM RENDER permanecen fuera de este repositorio.
+Este repositorio contiene el complemento de AURUM CONECT para Rhino 7 x64 y su colección nativa de barras de herramientas. La plataforma AURUM LAB y el motor óptico de AURUM RENDER permanecen fuera de este repositorio.
 
 ## Distribución
 
-El resultado oficial es un único archivo:
+El paquete de distribución contiene dos archivos que deben permanecer juntos:
 
-`AurumConect-Rhino7-1.0.0.rhp`
+- `AurumConect.rhp`: complemento Rhino 7 x64 (.NET Framework 4.8). WebView2.Core y WebView2Loader x64 se integran como recursos del propio ensamblado.
+- `AurumConect.rui`: barra nativa Rhino con tres botones e iconos: **AURUM RENDER**, **ENVIAR DISEÑO** y **PANEL AURUM**.
 
-Las bibliotecas administradas Microsoft WebView2 Core/WinForms y el cargador nativo WebView2Loader x64 se incrustan como recursos dentro del propio ensamblado. Al cargar el plugin, el cargador nativo se extrae a una carpeta de datos local de AURUM LAB para que Windows pueda cargarlo. No se distribuyen DLL adicionales junto al RHP.
+El nombre base idéntico y la ubicación conjunta permiten a Rhino 7 detectar y abrir automáticamente el RUI al cargar por primera vez el complemento, según el mecanismo documentado por McNeel. El RUI puede copiarse a la ubicación de usuario que Rhino administra.
 
 ## Requisitos
 
 - Windows x64
 - Rhino 7 x64
 - MatrixGold 3.1 dentro de Rhino 7 para el flujo CAD
-- Microsoft Edge WebView2 Evergreen Runtime para la ventana Chromium integrada
+- Microsoft Edge WebView2 Evergreen Runtime x64
 - Conexión a Internet para acceder a AURUM LAB
 
-WebView2 Runtime es un componente de sistema de Microsoft y no se puede incrustar de forma soportada dentro del .RHP. Si falta, el plugin informa del requisito y abre la página en el navegador predeterminado como alternativa; Rhino no debe cerrarse por ese motivo.
+WebView2 Runtime es un componente de sistema de Microsoft y no se incrusta dentro del .RHP.
 
-## Instalación
+## Instalación manual
 
-1. Descarga el archivo `.rhp`.
-2. En Rhino 7, abre `_PlugInManager`.
-3. Usa la opción para instalar/cargar un complemento y selecciona `AurumConect-Rhino7-1.0.0.rhp`.
-4. Ejecuta `AurumConect` en la línea de comandos de Rhino.
-5. Si la ventana integrada no inicia, instala o actualiza Microsoft Edge WebView2 Evergreen Runtime y reinicia Rhino.
+1. Descarga y extrae `AurumConect-Rhino7-1.0.12.zip` en una carpeta permanente.
+2. No separes ni renombres `AurumConect.rhp` y `AurumConect.rui`.
+3. En Rhino 7, abre `_PlugInManager` e instala/carga `AurumConect.rhp` desde esa carpeta.
+4. Reinicia Rhino si lo solicita. La primera carga del complemento debe detectar la barra `AurumConect.rui`.
+5. Si no aparece, ejecuta el comando `_Toolbar`, busca el archivo `AurumConect.rui` y ábrelo manualmente.
+6. Prueba los tres botones: visor, transferencia del documento activo y panel.
+
+También puedes cargar solo el RHP desde el administrador de complementos, pero para recibir la barra nativa debes conservar el RUI en la misma carpeta que el RHP.
+
+## Botones y comandos
+
+| Botón | Comando Rhino | Acción |
+|---|---|---|
+| AURUM RENDER | `AurumRender` | Abre el visor integrado sin transferir un nuevo documento |
+| ENVIAR DISEÑO | `AurumConectActualizar` | Genera una copia completa temporal del documento Rhino y abre AURUM RENDER con la transferencia |
+| PANEL AURUM | `AurumConect` | Abre el panel acoplable AURUM CONECT |
 
 ## Compilación y validación
 
-GitHub Actions compila .NET Framework 4.8 x64, valida la cabecera PE y la presencia de los tres recursos WebView2 dentro del ensamblado, y publica únicamente el archivo RHP. La validación automática de recursos no sustituye una prueba real en Rhino 7 + MatrixGold 3.1.
+GitHub Actions compila .NET Framework 4.8 x64, valida la cabecera PE y los recursos WebView2 integrados, comprueba que el RUI sea XML válido, verifica las tres macros y valida los atlas PNG de iconos. Esta comprobación no sustituye una prueba visual y funcional en Rhino 7 + MatrixGold 3.1.
 
 ## Seguridad
 
@@ -38,39 +50,12 @@ No se almacenan credenciales ni secretos en este repositorio. El canal local de 
 
 Este repositorio es público para aprovechar ejecutores estándar de GitHub Actions. No contiene el código de AURUM RENDER ni secretos del repositorio privado.
 
+## Historial relevante
 
-## Versión 1.0.2
-Incluye diagnóstico de inicialización y navegación de WebView2, pantalla de carga y recuperación mediante reintento o navegador externo.
+### 1.0.12 — recuperación de superficie WebView2
 
-<!-- AURUM CONECT BUILD RETRY 2026-11-11 -->
+Corrige la pérdida de imagen que puede ocurrir al maximizar o restaurar la ventana de AURUM CONECT. La recuperación actúa en la ventana anfitriona: no navega de nuevo, no reinicia Chromium, no recrea el contexto WebGL y no modifica la escena ni el motor óptico.
 
-<!-- AURUM CONECT BUILD RETRY 2 · 2026-11-11 -->
+### Barra nativa AURUM CONECT
 
-
-## Versión 1.0.11
-
-Refuerza la recuperación del viewport WebView2 con sincronización escalonada tras cambios de tamaño, maximización/restauración, reactivación y cambios de DPI. Añade hasta dos intentos automáticos de recuperación mediante recarga del proceso Chromium cuando WebView2 notifica un fallo. No modifica el motor óptico de AURUM RENDER.
-
-
-## Versión 1.0.11 — recuperación reforzada del visor
-
-La versión 1.0.11 incorpora sincronización escalonada del viewport WebView2 tras maximizar, restaurar, redimensionar, reactivar la ventana o cambiar el DPI de Windows. También añade hasta dos intentos automáticos de recuperación mediante recarga del contenido cuando WebView2 notifica un fallo del proceso Chromium.
-
-Esta mejora actúa en la ventana anfitriona de AURUM CONECT. No modifica los shaders, materiales, HDRI, BVH ni el motor óptico de AURUM RENDER.
-
-**Instalación:** cierra Rhino 7, sustituye el complemento anterior por `AurumConect-Rhino7-1.0.11.rhp`, vuelve a registrarlo en `_PlugInManager` y ejecuta `AurumConect`. Requiere Windows x64, Rhino 7 x64 y Microsoft Edge WebView2 Evergreen Runtime x64.
-
-Registro de diagnóstico: `%LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.11.log`.
-
-
-## Versión 1.0.12 — recuperación de superficie WebView2
-
-La versión 1.0.12 corrige la pérdida de imagen que puede ocurrir al maximizar o restaurar la ventana de AURUM CONECT. Detecta los cambios reales de estado de la ventana WinForms y fuerza una reconexión controlada de la superficie de composición WebView2: oculta temporalmente el controlador, actualiza sus límites, notifica el cambio de posición y vuelve a mostrarlo después de que Windows complete el nuevo ciclo de composición.
-
-Después de reconectar la superficie, notifica al visor para que mida el viewport y solicite un nuevo fotograma. No navega de nuevo, no reinicia Chromium, no recrea el contexto WebGL y no modifica la escena ni el motor óptico de AURUM RENDER.
-
-**Instalación:** cierra Rhino 7, sustituye el complemento anterior por `AurumConect-Rhino7-1.0.12.rhp`, vuelve a registrarlo en `_PlugInManager` y ejecuta `AurumConect`. Requiere Windows x64, Rhino 7 x64 y Microsoft Edge WebView2 Evergreen Runtime x64.
-
-Registro de diagnóstico: `%LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.12.log`.
-
-La validación automatizada de compilación debe completarse y la recuperación visual debe probarse en Rhino 7 + MatrixGold 3.1 antes de considerar esta versión lista para producción.
+Se incorpora una barra Rhino 7 con iconografía propia y accesos directos al visor, transferencia del diseño y panel de conexión.
