@@ -26,27 +26,29 @@ namespace AurumConect
                 BackgroundColor = Surface
             };
 
-            layout.AddRow(CreateLabel("AURUM CONECT", 16, true, Gold));
-            layout.AddRow(CreateLabel("MATRIXGOLD 3.1  ·  RHINO 7", 9, true, TextMuted));
-            layout.AddRow(CreateLabel("Abre AURUM RENDER y carga automáticamente una copia completa del documento Rhino activo.", 10, false, TextMain));
+            layout.AddRow(CreateLabel("A U R U M   C O N E C T", 16, true, Gold));
+            layout.AddRow(CreateLabel("ESTUDIO PROFESIONAL DE JOYERÍA  ·  RHINO 7", 8, true, TextMuted));
+            layout.AddRow(CreateLabel("Conecta tu flujo CAD con AURUM RENDER. Elige si deseas abrir el visor o transferir el documento Rhino activo.", 10, false, TextMain));
 
-            var connectButton = CreateButton("CONECTAR A AURUM LAB", SurfaceRaised, TextMain, 38);
-            connectButton.Click += (_, __) => OpenAurumLogin();
-            layout.AddRow(connectButton);
-
-            var renderButton = CreateButton("ABRIR AURUM RENDER", SurfaceRaised, Gold, 38);
-            renderButton.Text = "ABRIR AURUM RENDER · CARGAR DOCUMENTO";
-            renderButton.Click += (_, __) => RhinoApp.RunScript("_AurumConectActualizar", false);
+            layout.AddRow(CreateLabel("ACCIONES PRINCIPALES", 8, true, Gold));
+            var renderButton = CreateButton("◇  ABRIR AURUM RENDER", SurfaceRaised, Gold, 42);
+            renderButton.Click += (_, __) => AurumConectRenderWindow.Open("https://tallerdeljoyero.com/aurum-render");
             layout.AddRow(renderButton);
 
-            _status = CreateLabel("Estado: listo para cargar el documento completo", 9, false, TextMuted);
+            var transferButton = CreateButton("↗  ENVIAR DOCUMENTO Y ABRIR RENDER", Gold, Surface, 44);
+            transferButton.Click += (_, __) => RhinoApp.RunScript("_AurumConectActualizar", false);
+            layout.AddRow(transferButton);
+
+            layout.AddRow(CreateLabel("COMANDOS RHINO", 8, true, Gold));
+            layout.AddRow(CreateLabel("AurumConect  ·  Abre este panel\nAurumRender  ·  Abre el visor integrado\nAurumConectActualizar  ·  Envía el documento activo", 9, false, TextMuted));
+
+            _status = CreateLabel("●  LISTO  ·  Esperando una acción", 9, true, TextMuted);
             layout.AddRow(_status);
             layout.AddRow(CreateLabel(
-                "El acceso se realiza en la página oficial de AURUM LAB. Tus credenciales nunca se guardan en Rhino ni en este complemento.",
+                "La transferencia crea una copia temporal completa del documento activo. El archivo original permanece intacto.",
                 9, false, TextMuted));
             layout.AddRow(CreateLabel(
-                "Al abrir AURUM RENDER se transfiere una copia local del documento Rhino completo. No necesitas seleccionar objetos ni pulsar un botón de envío adicional.",
-                9, false, TextMuted));
+                "TALLER DEL JOYERO  ·  AURUM LAB", 8, true, TextMuted));
 
             Content = new Scrollable
             {
