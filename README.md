@@ -45,3 +45,8 @@ Incluye diagnóstico de inicialización y navegación de WebView2, pantalla de c
 <!-- AURUM CONECT BUILD RETRY 2026-11-11 -->
 
 <!-- AURUM CONECT BUILD RETRY 2 · 2026-11-11 -->
+
+
+## Versión 1.0.11
+
+Refuerza la recuperación del viewport WebView2 con sincronización escalonada tras cambios de tamaño, maximización/restauración, reactivación y cambios de DPI. Añade hasta dos intentos automáticos de recuperación mediante recarga del proceso Chromium cuando WebView2 notifica un fallo. No modifica el motor óptico de AURUM RENDER.
