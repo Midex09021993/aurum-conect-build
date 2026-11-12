@@ -50,3 +50,14 @@ Incluye diagnóstico de inicialización y navegación de WebView2, pantalla de c
 ## Versión 1.0.11
 
 Refuerza la recuperación del viewport WebView2 con sincronización escalonada tras cambios de tamaño, maximización/restauración, reactivación y cambios de DPI. Añade hasta dos intentos automáticos de recuperación mediante recarga del proceso Chromium cuando WebView2 notifica un fallo. No modifica el motor óptico de AURUM RENDER.
+
+
+## Versión 1.0.11 — recuperación reforzada del visor
+
+La versión 1.0.11 incorpora sincronización escalonada del viewport WebView2 tras maximizar, restaurar, redimensionar, reactivar la ventana o cambiar el DPI de Windows. También añade hasta dos intentos automáticos de recuperación mediante recarga del contenido cuando WebView2 notifica un fallo del proceso Chromium.
+
+Esta mejora actúa en la ventana anfitriona de AURUM CONECT. No modifica los shaders, materiales, HDRI, BVH ni el motor óptico de AURUM RENDER.
+
+**Instalación:** cierra Rhino 7, sustituye el complemento anterior por `AurumConect-Rhino7-1.0.11.rhp`, vuelve a registrarlo en `_PlugInManager` y ejecuta `AurumConect`. Requiere Windows x64, Rhino 7 x64 y Microsoft Edge WebView2 Evergreen Runtime x64.
+
+Registro de diagnóstico: `%LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.11.log`.
