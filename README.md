@@ -61,3 +61,16 @@ Esta mejora actúa en la ventana anfitriona de AURUM CONECT. No modifica los sha
 **Instalación:** cierra Rhino 7, sustituye el complemento anterior por `AurumConect-Rhino7-1.0.11.rhp`, vuelve a registrarlo en `_PlugInManager` y ejecuta `AurumConect`. Requiere Windows x64, Rhino 7 x64 y Microsoft Edge WebView2 Evergreen Runtime x64.
 
 Registro de diagnóstico: `%LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.11.log`.
+
+
+## Versión 1.0.12 — recuperación de superficie WebView2
+
+La versión 1.0.12 corrige la pérdida de imagen que puede ocurrir al maximizar o restaurar la ventana de AURUM CONECT. Detecta los cambios reales de estado de la ventana WinForms y fuerza una reconexión controlada de la superficie de composición WebView2: oculta temporalmente el controlador, actualiza sus límites, notifica el cambio de posición y vuelve a mostrarlo después de que Windows complete el nuevo ciclo de composición.
+
+Después de reconectar la superficie, notifica al visor para que mida el viewport y solicite un nuevo fotograma. No navega de nuevo, no reinicia Chromium, no recrea el contexto WebGL y no modifica la escena ni el motor óptico de AURUM RENDER.
+
+**Instalación:** cierra Rhino 7, sustituye el complemento anterior por `AurumConect-Rhino7-1.0.12.rhp`, vuelve a registrarlo en `_PlugInManager` y ejecuta `AurumConect`. Requiere Windows x64, Rhino 7 x64 y Microsoft Edge WebView2 Evergreen Runtime x64.
+
+Registro de diagnóstico: `%LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.12.log`.
+
+La validación automatizada de compilación debe completarse y la recuperación visual debe probarse en Rhino 7 + MatrixGold 3.1 antes de considerar esta versión lista para producción.
