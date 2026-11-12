@@ -35,7 +35,7 @@ namespace AurumConect
             {
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.10.log");
+                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.11.log");
             }
         }
 
@@ -446,7 +446,7 @@ namespace AurumConect
                         _loadingPanel.Visible = false;
                         _controller.IsVisible = true;
                         WriteLog("Navegación completada: " + args.WebErrorStatus);
-                        RhinoApp.WriteLine("AURUM CONECT 1.0.10: AURUM RENDER cargó en el controlador WebView2 nativo.");
+                        RhinoApp.WriteLine("AURUM CONECT 1.0.11: AURUM RENDER cargó en el controlador WebView2 nativo.");
                     }
                     else
                     {
@@ -491,7 +491,7 @@ namespace AurumConect
                 _browserReady = false;
                 WriteLog("ERROR INIT NATIVE: " + exception);
                 SetStatus("No se pudo preparar el visor integrado: " + exception.Message, true);
-                RhinoApp.WriteLine("AURUM CONECT 1.0.9: error WebView2. Registro: {0}", LogPath);
+                RhinoApp.WriteLine("AURUM CONECT 1.0.11: error WebView2. Registro: {0}", LogPath);
                 RhinoApp.WriteLine(exception.ToString());
             }
         }
