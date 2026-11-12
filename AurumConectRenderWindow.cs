@@ -19,6 +19,7 @@ namespace AurumConect
         private readonly Button _retryButton;
         private readonly ProgressBar _progressIndicator;
         private readonly System.Windows.Forms.Timer _startupTimer;
+        private readonly System.Windows.Forms.Timer _viewportSyncTimer;
         private Task _initializationTask;
         private CoreWebView2Environment _environment;
         private CoreWebView2Controller _controller;
@@ -52,8 +53,43 @@ namespace AurumConect
                 BackColor = Color.FromArgb(247, 246, 243),
                 Visible = true
             };
-            _browserHost.Resize += (_, __) => UpdateBrowserBounds();
+            _browserHost.Resize += (_, __) =>
+            {
+                UpdateBrowserBounds();
+                ScheduleViewportSync();
+            };
             Controls.Add(_browserHost);
+
+            // The native CoreWebView2Controller owns its own composition bounds.
+            // Synchronize after the containing Rhino/WinForms Form has completed
+            // maximize, restore, DPI and activation layout—not only on the child
+            // host panel's first Resize notification.
+            _viewportSyncTimer = new System.Windows.Forms.Timer { Interval = 140 };
+            _viewportSyncTimer.Tick += (_, __) =>
+            {
+                _viewportSyncTimer.Stop();
+                if (IsDisposed || Disposing) return;
+                UpdateBrowserBounds();
+                if (_controller == null) return;
+                try
+                {
+                    _controller.NotifyParentWindowPositionChanged();
+                    CoreWebView2 core = _controller.CoreWebView2;
+                    if (core != null)
+                    {
+                        _ = core.ExecuteScriptAsync(
+                            "window.dispatchEvent(new Event('resize')); window.dispatchEvent(new Event('aurum-host-resize'));"
+                        );
+                    }
+                }
+                catch (Exception exception)
+                {
+                    WriteLog("Sincronización de viewport diferida: " + exception.Message);
+                }
+            };
+            Resize += (_, __) => ScheduleViewportSync();
+            ResizeEnd += (_, __) => ScheduleViewportSync();
+            Activated += (_, __) => ScheduleViewportSync();
 
             _loadingPanel = new Panel
             {
@@ -221,6 +257,8 @@ namespace AurumConect
                 {
                     _startupTimer.Stop();
                     _startupTimer.Dispose();
+                    _viewportSyncTimer.Stop();
+                    _viewportSyncTimer.Dispose();
                     if (_controller != null)
                     {
                         _controller.Close();
@@ -390,12 +428,21 @@ namespace AurumConect
             }
         }
 
+        private void ScheduleViewportSync()
+        {
+            if (IsDisposed || Disposing || _viewportSyncTimer == null) return;
+            _viewportSyncTimer.Stop();
+            _viewportSyncTimer.Start();
+        }
+
         private void UpdateBrowserBounds()
         {
-            if (_controller == null) return;
+            if (_controller == null || _browserHost.IsDisposed) return;
             try
             {
-                _controller.Bounds = new Rectangle(0, 0, _browserHost.ClientSize.Width, _browserHost.ClientSize.Height);
+                Rectangle bounds = _browserHost.ClientRectangle;
+                if (bounds.Width < 2 || bounds.Height < 2) return;
+                _controller.Bounds = bounds;
             }
             catch (Exception exception) { WriteLog("Error actualizando tamaño del navegador: " + exception.Message); }
         }
