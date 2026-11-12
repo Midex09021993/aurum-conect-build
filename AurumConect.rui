@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RhinoUI major_ver="3" minor_ver="0" guid="d8a21fc6-9575-4d73-bd51-d668f69d629b" localize="False" default_language_id="1033" dpi_scale="100">
+  <extend_rhino_menus />
+  <menus />
+  <tool_bar_groups>
+    <tool_bar_group guid="ca8cb4ed-944d-4cfd-a8f9-a71cd1753025" dock_bar_guid32="00000000-0000-0000-0000-000000000000" dock_bar_guid64="fc82d449-0810-4e9d-8270-6f6e343bb75c" active_tool_bar_group="ac907751-1450-4267-9cca-d5f2b167b0c7" single_file="False" hide_single_tab="False" point_floating="1398,794">
+      <text><locale_1033>AURUM LAB</locale_1033></text>
+      <tool_bar_group_item guid="ac907751-1450-4267-9cca-d5f2b167b0c7" major_version="1" minor_version="1">
+        <text><locale_1033>AURUM CONECT</locale_1033></text>
+        <tool_bar_id>c7fa4d27-c359-480a-a83a-d4de99b4eef6</tool_bar_id>
+      </tool_bar_group_item>
+      <dock_bar_info dpi_scale="100" dock_bar="False" docking="True" horz="False" visible="True" floating="True" mru_float_style="4096" bar_id="59483" mru_width="32767" point_pos="-1,-1" float_point="1398,794" rect_mru_dock_pos="0,0,0,0" dock_location_u="59420" dock_location="left" float_size="41,62" />
+    </tool_bar_group>
+  </tool_bar_groups>
+  <tool_bars>
+    <tool_bar guid="c7fa4d27-c359-480a-a83a-d4de99b4eef6">
+      <text><locale_1033>AURUM CONECT</locale_1033></text>
+      <tool_bar_item guid="c5ba77ff-78d1-49ec-be8c-a730be04c7e4"><text><locale_1033>AURUM RENDER</locale_1033></text><left_macro_id>d3ad5369-488d-4e92-97c4-8554113f618a</left_macro_id></tool_bar_item>
+      <tool_bar_item guid="131f8491-bc9d-4ba5-a3de-127dd437df87"><text><locale_1033>ENVIAR DISEÑO</locale_1033></text><left_macro_id>84b97e88-d08f-46aa-9213-1c1cba2a15ab</left_macro_id></tool_bar_item>
+      <tool_bar_item guid="6d4ad3d6-dff5-44bc-b444-0f4e6892f9c6"><text><locale_1033>PANEL AURUM</locale_1033></text><left_macro_id>9a6c0ea0-25a9-4681-8597-946d9aa1cb15</left_macro_id></tool_bar_item>
+    </tool_bar>
+  </tool_bars>
+  <macros>
+    <macro_item guid="d3ad5369-488d-4e92-97c4-8554113f618a" bitmap_id="7aa9948f-6bac-4995-8e0d-c3cb5cf5f959">
+      <text><locale_1033>AURUM RENDER</locale_1033></text><tooltip><locale_1033>Abrir el visor integrado de AURUM RENDER</locale_1033></tooltip><help_text><locale_1033>Abrir el visor integrado de AURUM RENDER</locale_1033></help_text><button_text><locale_1033>Abrir AURUM RENDER</locale_1033></button_text><menu_text><locale_1033>AURUM RENDER</locale_1033></menu_text><script>! _AurumRender</script>
+    </macro_item>
+    <macro_item guid="84b97e88-d08f-46aa-9213-1c1cba2a15ab" bitmap_id="696bbe73-6e93-42c6-8d73-1a69f9ff8868">
+      <text><locale_1033>ENVIAR DISEÑO</locale_1033></text><tooltip><locale_1033>Transferir el documento Rhino completo y abrir AURUM RENDER</locale_1033></tooltip><help_text><locale_1033>Transferir el documento Rhino completo y abrir AURUM RENDER</locale_1033></help_text><button_text><locale_1033>Enviar diseño</locale_1033></button_text><menu_text><locale_1033>ENVIAR DISEÑO</locale_1033></menu_text><script>! _AurumConectActualizar</script>
+    </macro_item>
+    <macro_item guid="9a6c0ea0-25a9-4681-8597-946d9aa1cb15" bitmap_id="bec8bdfe-29d6-407c-ae2f-af9ccdffce1f">
+      <text><locale_1033>PANEL AURUM</locale_1033></text><tooltip><locale_1033>Abrir el panel de herramientas AURUM CONECT</locale_1033></tooltip><help_text><locale_1033>Abrir el panel de herramientas AURUM CONECT</locale_1033></help_text><button_text><locale_1033>Panel AURUM</locale_1033></button_text><menu_text><locale_1033>PANEL AURUM</locale_1033></menu_text><script>! _AurumConect</script>
+    </macro_item>
+  </macros>
+  <bitmaps>
+    <small_bitmap item_width="16" item_height="16">
+      <bitmap_item guid="7aa9948f-6bac-4995-8e0d-c3cb5cf5f959" index="0" /><bitmap_item guid="696bbe73-6e93-42c6-8d73-1a69f9ff8868" index="1" /><bitmap_item guid="bec8bdfe-29d6-407c-ae2f-af9ccdffce1f" index="2" />
+      <bitmap>iVBORw0KGgoAAAANSUhEUgAAABAAAAAwCAYAAAAYX/pXAAABCElEQVR4nOVWsRHDIAzEvpQUnsOzULvKhNS+jMIAmcAFPamUgPyAwC7sy5cgvV/iBVbq8vB+C6X9R27DWfNNJBKtp0H0VZQsUaOcNSFORknebyFeG3KBNbxfTzUv668kZ01AJGgNKc0G8zWePHJZraWMfEHraciROGtCUjciyJGgZAiqjwi835KaefOgE501gfcDdl2ipivxXkiOpWSi6ijXHJjbh0Zqwc4H6NhEDvyTEoq2lvaAz0dyqcZmkQxRUlqvgiYClHjeLNwX4h5w7HrS+iJR/OFhOkzQZF2OJitzUHz1PpiXdffQxicA30aSRmQlG2d/85BcsQKOZgVdL3LvKZw3C734AGq6DqC2kW1nAAAAAElFTkSuQmCC</bitmap>
+    </small_bitmap>
+    <normal_bitmap item_width="24" item_height="24">
+      <bitmap_item guid="7aa9948f-6bac-4995-8e0d-c3cb5cf5f959" index="0" /><bitmap_item guid="696bbe73-6e93-42c6-8d73-1a69f9ff8868" index="1" /><bitmap_item guid="bec8bdfe-29d6-407c-ae2f-af9ccdffce1f" index="2" />
+      <bitmap>iVBORw0KGgoAAAANSUhEUgAAABgAAABICAYAAADs+TUPAAABnUlEQVR4nO1Yu5HCQAyVGUIHVEABlMIQE7m8i4gZl0IBroCA3BeJWbT6YpnPnV/CMF7r6S+tAf4dbrfrGDm/ihy+nA4jkniJ1hHBiKHvAInadtNo75oWlMJ3x3NT/g59Z7pMJeCE0/9IIhGx5lGXlMKpW8qz2/0PDH33cL4iiGZJCYwNVarSXiPRnl1Oh5FaX8VAZDZABYsEAL7skEAVDBWaBEl7lcBrhSZcJEAz23bTRFzFxc9daM88NwkAZCs8wl0EGgmAndYigfYip7103mzXKEzKKstVrnmAKHvNbOD6zYLPBpu7kf4T3iqic8A6L9aBpZlXmZSB87cJ1F6ktQTv9jG7BRUiq7nn7FMuiixn3++iyRZYUy5tdcR40biJ9wPai6JjEhNhliC7bjiRbqrdbFKDzNVHyh2NXvxUgiiJx5ULFkzDQ4pN+U5Bgel7r+RM4aW8amRmFE6p7Owjk/2wlIXd8dy8buhHhn1EFrsXZexDCHHxosIoqWQtzcL3btcavPXyuRZ4YyASpBfey+ogu6veg5y9fizrjBu/OgVKl37VsaQAAAAASUVORK5CYII=</bitmap>
+    </normal_bitmap>
+    <large_bitmap item_width="32" item_height="32">
+      <bitmap_item guid="7aa9948f-6bac-4995-8e0d-c3cb5cf5f959" index="0" /><bitmap_item guid="696bbe73-6e93-42c6-8d73-1a69f9ff8868" index="1" /><bitmap_item guid="bec8bdfe-29d6-407c-ae2f-af9ccdffce1f" index="2" />
+      <bitmap>iVBORw0KGgoAAAANSUhEUgAAACAAAABgCAYAAAB8InCYAAACIElEQVR4nO1ZO27DMAyVi44ecoIeIEcpOmfK8Tp1DnKUHiAn8ODdnRTIjMSvLKIA35pIfHqkKJJOKWDEui6bZf1bD+MWEiYCj/t1R0ZD5F1j+Pfnq2loXZdtnk8Tdy+xAqXx8+X2NATV4O7HZtoyno3N82nKv398fj/XUGqwCLRODQmU/+eSIF2AGW/hfLlN3ACtbriuy1ZugBmvKQDJZzUe9+vLPi+LrImlhfJAJYkXF0iukAZQATIPUIQwF2RgeaMahOVmVpdQQdy8BTAIjwIrE2pVwKQnCdTussV46xqTChztCtFjxFWBI72IgDY3cFI3+QfqhYN5oHZ6jAjbBZzcoHm4RDHAdQXXuJhACaiCJPBKiAuSlPbxkBJ+VSk1VAr0zA2q69WSW+J7E4GMsnLSGA8EAikh19BSjJq7Y2slLFmP9gWaQkRK3jQh6YEg4E6ANaTiVDva19BdgSq0Mz/NWncF3Al0CUJLOeauQBW9gtA0oLAiG6dIHEIANi4YCfH0k0Je2+qeyEkph4C2Ea2RGH4LoALDCUD13GNA9c2IQs24ek6oARxgYKkadYEF+RsS9U64NyaBQCAw7MtpiTJR7d6CEcahnepreGQqhYd07wuCwM7X1mpXglwnuCuwg6Un1NpwVwCtio+cC7AISEC5rpXcWATgSXvelm4KaNO3exC6E/gfQXhkinYPwh0iFWeMqg1TAgqMaqujfQ+U+AOovoSspHK+5QAAAABJRU5ErkJggg==</bitmap>
+    </large_bitmap>
+  </bitmaps>
+  <scripts />
+</RhinoUI>
