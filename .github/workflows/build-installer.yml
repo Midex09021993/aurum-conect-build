@@ -1,4 +1,4 @@
-name: AURUM CONECT · Rhino 7 RHP
+name: AURUM CONECT · Rhino 7 RHP + RUI
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: 'Publicar el RHP en el release estable (solo tras validación manual en Rhino)'
+        description: 'Publicar los archivos de distribución tras validación manual en Rhino'
         required: false
         type: boolean
         default: false
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build-rhp:
-    name: Build and validate single-file Rhino plugin
+    name: Build and validate Rhino plugin and native toolbar
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -35,17 +35,20 @@ jobs:
       - name: Restore NuGet dependencies
         run: dotnet restore AurumConect.csproj --verbosity minimal
 
-      - name: Build self-contained Rhino 7 plugin (.NET Framework 4.8, x64)
+      - name: Build Rhino 7 plugin (.NET Framework 4.8, x64)
         run: dotnet build AurumConect.csproj --configuration Release --no-restore --verbosity minimal
 
-      - name: Validate single RHP payload
+      - name: Validate RHP payload and RUI toolbar package
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           $plugin = "bin\\Release\\net48\\AurumConect.rhp"
+          $rui = "AurumConect.rui"
           if (-not (Test-Path $plugin)) { throw "No se generó AurumConect.rhp." }
+          if (-not (Test-Path $rui)) { throw "No se encontró AurumConect.rui." }
+
           $bytes = [IO.File]::ReadAllBytes($plugin)
-          if ($bytes.Length -lt 100000 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "El .RHP no contiene un ensamblado PE válido o no incluye sus dependencias." }
+          if ($bytes.Length -lt 100000 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "El .RHP no contiene un ensamblado PE válido." }
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
           if ($bytes[$peOffset] -ne 0x50 -or $bytes[$peOffset+1] -ne 0x45 -or $bytes[$peOffset+2] -ne 0 -or $bytes[$peOffset+3] -ne 0) { throw "Firma PE inválida." }
           if ([BitConverter]::ToUInt16($bytes, $peOffset + 4) -ne 0x8664) { throw "El complemento no es x64." }
@@ -53,33 +56,53 @@ jobs:
           foreach ($resourceName in @("AurumConect.Embedded.Microsoft.Web.WebView2.Core.dll", "AurumConect.Embedded.WebView2Loader.dll")) {
             if (-not $strings.Contains($resourceName)) { throw "No se encontró el recurso incrustado: $resourceName" }
           }
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          Copy-Item $plugin "artifacts\\AurumConect-Rhino7-1.0.12.rhp" -Force
-          $size = (Get-Item "artifacts\\AurumConect-Rhino7-1.0.12.rhp").Length
-          Write-Host "RHP x64 único validado: $size bytes. No se distribuyen DLL externas."
 
-      - name: Upload single RHP artifact
+          [xml]$ruiXml = Get-Content -Raw -Encoding UTF8 $rui
+          $buttons = @($ruiXml.RhinoUI.tool_bars.tool_bar.tool_bar_item)
+          $macros = @($ruiXml.RhinoUI.macros.macro_item)
+          if ($buttons.Count -ne 3 -or $macros.Count -ne 3) { throw "La barra AURUM CONECT debe contener exactamente tres botones y tres macros." }
+          $scripts = @($macros | ForEach-Object { $_.script })
+          foreach ($command in @("AurumRender", "AurumConectActualizar", "AurumConect")) {
+            if (-not ($scripts -match [regex]::Escape($command))) { throw "No existe una macro para el comando Rhino $command." }
+          }
+          foreach ($size in @("small_bitmap", "normal_bitmap", "large_bitmap")) {
+            $table = $ruiXml.RhinoUI.bitmaps.$size
+            if (@($table.bitmap_item).Count -ne 3 -or [string]::IsNullOrWhiteSpace($table.bitmap)) { throw "Faltan iconos en $size." }
+            $png = [Convert]::FromBase64String($table.bitmap)
+            if ($png.Length -lt 8 -or $png[0] -ne 0x89 -or $png[1] -ne 0x50 -or $png[2] -ne 0x4E -or $png[3] -ne 0x47) { throw "El atlas de iconos $size no es PNG válido." }
+          }
+
+          New-Item -ItemType Directory -Force -Path artifacts/package | Out-Null
+          Copy-Item $plugin "artifacts/package/AurumConect.rhp" -Force
+          Copy-Item $rui "artifacts/package/AurumConect.rui" -Force
+          Copy-Item $plugin "artifacts/AurumConect-Rhino7-1.0.12.rhp" -Force
+          Compress-Archive -Path "artifacts/package/AurumConect.rhp","artifacts/package/AurumConect.rui" -DestinationPath "artifacts/AurumConect-Rhino7-1.0.12.zip" -Force
+          Write-Host "RHP x64 validado y paquete RHP+RUI creado. Botones: AURUM RENDER, ENVIAR DISEÑO, PANEL AURUM."
+
+      - name: Upload RHP and native toolbar package
         uses: actions/upload-artifact@v4
         with:
-          name: AurumConect-Rhino7-1.0.12-RHP
-          path: artifacts/AurumConect-Rhino7-1.0.12.rhp
+          name: AurumConect-Rhino7-1.0.12-RHP-RUI
+          path: |
+            artifacts/AurumConect-Rhino7-1.0.12.rhp
+            artifacts/AurumConect-Rhino7-1.0.12.zip
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish single RHP release
+      - name: Publish RHP and native toolbar release
         if: (github.event_name == 'workflow_dispatch' && inputs.publish_release == true) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Publish validated AURUM CONECT 1.0.12 release from main')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.12
           name: AURUM CONECT Rhino 7 · v1.0.12
           body: |
-            Complemento de archivo único para Rhino 7 x64 y MatrixGold 3.1.
+            Complemento para Rhino 7 x64 y MatrixGold 3.1.
 
-            Interfaz premium de bienvenida AURUM LAB, estados de conexión claros, reintento integrado y eliminación del botón de apertura manual en navegador externo. WebView2 se mantiene integrado en la ventana nativa. en %LOCALAPPDATA%\\AurumLab\\AurumConect\\Logs\\AurumConect-1.0.12.log.
+            Incluye el complemento AurumConect.rhp y la barra nativa AurumConect.rui, con iconos para AURUM RENDER, ENVIAR DISEÑO y PANEL AURUM. Extrae ambos archivos juntos; Rhino 7 detecta el RUI cuando comparte nombre base y carpeta con el RHP.
 
-            WebView2.Core y WebView2Loader x64 permanecen integrados dentro del único .RHP. Al abrir AURUM RENDER desde el panel, Rhino genera una copia .3dm completa del documento activo (no solo objetos seleccionados) y la transfiere automáticamente al visor. Requisito externo: Microsoft Edge WebView2 Evergreen Runtime x64.
-
-            Beta: requiere prueba real de extremo a extremo en Rhino 7 + MatrixGold 3.1.
-          files: artifacts/AurumConect-Rhino7-1.0.12.rhp
+            Requisito externo: Microsoft Edge WebView2 Evergreen Runtime x64. La compilación automatizada valida el RHP, XML del RUI, referencias de macros y atlas PNG. La carga visual y el comportamiento deben probarse en Rhino 7 + MatrixGold 3.1 antes de producción.
+          files: |
+            artifacts/AurumConect-Rhino7-1.0.12.rhp
+            artifacts/AurumConect-Rhino7-1.0.12.zip
           overwrite_files: true
           make_latest: true
