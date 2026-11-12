@@ -23,6 +23,9 @@ namespace AurumConect
         private readonly System.Windows.Forms.Timer _processRecoveryTimer;
         private int _viewportSyncPassesRemaining;
         private int _processRecoveryAttempts;
+        private FormWindowState _lastSyncedWindowState;
+        private bool _compositionRestorePending;
+        private readonly System.Windows.Forms.Timer _compositionRestoreTimer;
         private Task _initializationTask;
         private CoreWebView2Environment _environment;
         private CoreWebView2Controller _controller;
@@ -35,19 +38,20 @@ namespace AurumConect
             {
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.11.log");
+                    "AurumLab", "AurumConect", "Logs", "AurumConect-1.0.12.log");
             }
         }
 
         private AurumConectRenderWindow(string url)
         {
-            WriteLog("1.0.11 constructor iniciado; recuperación escalonada de viewport y proceso WebView2.");
+            WriteLog("1.0.12 constructor iniciado; reconexión de superficie WebView2 tras maximizar/restaurar.");
             _initialUrl = String.IsNullOrWhiteSpace(url) ? DefaultRenderUrl : NormalizeUrl(url);
             Text = "AURUM RENDER · AURUM CONECT";
             Width = 1280;
             Height = 820;
             MinimumSize = new Size(900, 600);
             StartPosition = FormStartPosition.CenterScreen;
+            _lastSyncedWindowState = WindowState;
             BackColor = Color.FromArgb(247, 246, 243);
 
             _browserHost = new Panel
@@ -76,37 +80,51 @@ namespace AurumConect
                 if (_controller == null) return;
                 try
                 {
-                    // Reassert visibility after minimize/restore. The controller
-                    // can retain a stale composition state even when its Bounds
-                    // have already been updated by the WinForms child panel.
-                    _controller.IsVisible = WindowState != FormWindowState.Minimized
+                    bool stateChanged = WindowState != _lastSyncedWindowState;
+                    _lastSyncedWindowState = WindowState;
+                    bool shouldBeVisible = WindowState != FormWindowState.Minimized
                         && _browserHost.Visible
                         && _browserHost.ClientSize.Width >= 2
                         && _browserHost.ClientSize.Height >= 2;
+
+                    // A changed top-level window state can leave the native
+                    // WebView2 visual surface attached to its previous
+                    // composition target. A real visibility transition forces
+                    // WebView2 to detach and reattach that surface without
+                    // navigating, recreating WebGL, or losing the CAD scene.
+                    if (stateChanged && shouldBeVisible)
+                    {
+                        _controller.IsVisible = false;
+                        _compositionRestorePending = true;
+                        _compositionRestoreTimer.Stop();
+                        _compositionRestoreTimer.Start();
+                        WriteLog("Cambio de estado nativo detectado (" + WindowState
+                            + "). Se programa reconexión de la superficie WebView2.");
+                    }
+                    else if (!shouldBeVisible)
+                    {
+                        _controller.IsVisible = false;
+                    }
+                    else if (!_compositionRestorePending)
+                    {
+                        _controller.IsVisible = true;
+                    }
+
+                    _controller.Bounds = _browserHost.ClientRectangle;
                     _controller.NotifyParentWindowPositionChanged();
 
                     CoreWebView2 core = _controller.CoreWebView2;
-                    if (core != null && _controller.IsVisible)
+                    if (core != null && shouldBeVisible && !_compositionRestorePending)
                     {
-                        int width = _browserHost.ClientSize.Width;
-                        int height = _browserHost.ClientSize.Height;
-                        WriteLog("Viewport sincronizado: " + width + "x" + height
-                            + ", estado=" + WindowState + ", visible=" + _controller.IsVisible);
-                        // Let Chromium commit the restored composition surface
-                        // before notifying the app. The app then measures its
-                        // final DOM viewport and schedules a demand-render frame.
-                        _ = core.ExecuteScriptAsync(
-                            "requestAnimationFrame(() => requestAnimationFrame(() => {"
-                            + "window.dispatchEvent(new Event('resize'));"
-                            + "window.dispatchEvent(new Event('aurum-host-resize'));"
-                            + "window.dispatchEvent(new Event('focus'));"
-                            + "}));"
-                        );
+                        WriteLog("Viewport sincronizado: " + _browserHost.ClientSize.Width + "x"
+                            + _browserHost.ClientSize.Height + ", estado=" + WindowState
+                            + ", visible=" + _controller.IsVisible);
+                        NotifyPageOfHostRestore(core);
                     }
                 }
                 catch (Exception exception)
                 {
-                    WriteLog("Sincronización de viewport diferida: " + exception.Message);
+                    WriteLog("Sincronización de viewport diferida: " + exception);
                 }
 
                 // Chromium puede aplicar el nuevo tamaño en un ciclo distinto al
@@ -119,6 +137,41 @@ namespace AurumConect
                     _viewportSyncTimer.Start();
                 }
             };
+
+            // Reattach the WebView2 composition surface on the next UI cycle,
+            // after Windows has committed the new top-level window geometry.
+            _compositionRestoreTimer = new System.Windows.Forms.Timer { Interval = 90 };
+            _compositionRestoreTimer.Tick += (_, __) =>
+            {
+                _compositionRestoreTimer.Stop();
+                if (IsDisposed || Disposing || _controller == null) return;
+                try
+                {
+                    if (WindowState == FormWindowState.Minimized) return;
+                    UpdateBrowserBounds();
+                    _controller.Bounds = _browserHost.ClientRectangle;
+                    _controller.NotifyParentWindowPositionChanged();
+                    _controller.IsVisible = _browserHost.Visible
+                        && _browserHost.ClientSize.Width >= 2
+                        && _browserHost.ClientSize.Height >= 2;
+                    _compositionRestorePending = false;
+
+                    CoreWebView2 core = _controller.CoreWebView2;
+                    if (core != null && _controller.IsVisible)
+                    {
+                        WriteLog("Superficie WebView2 reconectada tras cambio de estado; bounds="
+                            + _browserHost.ClientSize.Width + "x" + _browserHost.ClientSize.Height);
+                        NotifyPageOfHostRestore(core);
+                    }
+                    ScheduleViewportSync();
+                }
+                catch (Exception exception)
+                {
+                    _compositionRestorePending = false;
+                    WriteLog("No se pudo reconectar la superficie WebView2: " + exception);
+                }
+            };
+
             _processRecoveryTimer = new System.Windows.Forms.Timer { Interval = 900 };
             _processRecoveryTimer.Tick += (_, __) =>
             {
@@ -313,6 +366,8 @@ namespace AurumConect
                     _startupTimer.Dispose();
                     _viewportSyncTimer.Stop();
                     _viewportSyncTimer.Dispose();
+                    _compositionRestoreTimer.Stop();
+                    _compositionRestoreTimer.Dispose();
                     _processRecoveryTimer.Stop();
                     _processRecoveryTimer.Dispose();
                     if (_controller != null)
@@ -446,7 +501,7 @@ namespace AurumConect
                         _loadingPanel.Visible = false;
                         _controller.IsVisible = true;
                         WriteLog("Navegación completada: " + args.WebErrorStatus);
-                        RhinoApp.WriteLine("AURUM CONECT 1.0.11: AURUM RENDER cargó en el controlador WebView2 nativo.");
+                        RhinoApp.WriteLine("AURUM CONECT 1.0.12: AURUM RENDER cargó en el controlador WebView2 nativo.");
                     }
                     else
                     {
@@ -491,8 +546,29 @@ namespace AurumConect
                 _browserReady = false;
                 WriteLog("ERROR INIT NATIVE: " + exception);
                 SetStatus("No se pudo preparar el visor integrado: " + exception.Message, true);
-                RhinoApp.WriteLine("AURUM CONECT 1.0.11: error WebView2. Registro: {0}", LogPath);
+                RhinoApp.WriteLine("AURUM CONECT 1.0.12: error WebView2. Registro: {0}", LogPath);
                 RhinoApp.WriteLine(exception.ToString());
+            }
+        }
+
+        private async void NotifyPageOfHostRestore(CoreWebView2 core)
+        {
+            try
+            {
+                // Two compositor frames allow the native surface and DOM layout
+                // to settle before the viewer measures its canvas and requests
+                // a demand-render frame. No page reload or WebGL reset is used.
+                await core.ExecuteScriptAsync(
+                    "requestAnimationFrame(() => requestAnimationFrame(() => {"
+                    + "window.dispatchEvent(new Event('resize'));"
+                    + "window.dispatchEvent(new Event('aurum-host-resize'));"
+                    + "window.dispatchEvent(new Event('focus'));"
+                    + "}));"
+                );
+            }
+            catch (Exception exception)
+            {
+                WriteLog("Aviso al notificar la restauración del visor: " + exception.Message);
             }
         }
 
