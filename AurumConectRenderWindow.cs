@@ -20,6 +20,9 @@ namespace AurumConect
         private readonly ProgressBar _progressIndicator;
         private readonly System.Windows.Forms.Timer _startupTimer;
         private readonly System.Windows.Forms.Timer _viewportSyncTimer;
+        private readonly System.Windows.Forms.Timer _processRecoveryTimer;
+        private int _viewportSyncPassesRemaining;
+        private int _processRecoveryAttempts;
         private Task _initializationTask;
         private CoreWebView2Environment _environment;
         private CoreWebView2Controller _controller;
@@ -38,7 +41,7 @@ namespace AurumConect
 
         private AurumConectRenderWindow(string url)
         {
-            WriteLog("1.0.10 constructor iniciado; recuperación de viewport WebView2 nativa.");
+            WriteLog("1.0.11 constructor iniciado; recuperación escalonada de viewport y proceso WebView2.");
             _initialUrl = String.IsNullOrWhiteSpace(url) ? DefaultRenderUrl : NormalizeUrl(url);
             Text = "AURUM RENDER · AURUM CONECT";
             Width = 1280;
@@ -105,10 +108,42 @@ namespace AurumConect
                 {
                     WriteLog("Sincronización de viewport diferida: " + exception.Message);
                 }
+
+                // Chromium puede aplicar el nuevo tamaño en un ciclo distinto al
+                // de WinForms. Repetimos la sincronización en varios frames para
+                // cubrir maximize/restore, DPI y reactivación sin recargar la app.
+                if (_viewportSyncPassesRemaining > 0 && !IsDisposed && !Disposing)
+                {
+                    _viewportSyncPassesRemaining--;
+                    _viewportSyncTimer.Interval = _viewportSyncPassesRemaining == 0 ? 140 : 260;
+                    _viewportSyncTimer.Start();
+                }
+            };
+            _processRecoveryTimer = new System.Windows.Forms.Timer { Interval = 900 };
+            _processRecoveryTimer.Tick += (_, __) =>
+            {
+                _processRecoveryTimer.Stop();
+                if (IsDisposed || Disposing || _controller == null) return;
+                try
+                {
+                    CoreWebView2 core = _controller.CoreWebView2;
+                    if (core == null) throw new InvalidOperationException("CoreWebView2 no está disponible después del fallo.");
+                    WriteLog("Recuperación automática Chromium: intento " + _processRecoveryAttempts + ". Se ejecuta Reload sin recrear la sesión de ventana.");
+                    core.Reload();
+                    ScheduleViewportSync();
+                }
+                catch (Exception exception)
+                {
+                    WriteLog("Falló la recuperación automática Chromium: " + exception);
+                    SetStatus("El visor tuvo un fallo gráfico y no pudo recuperarse automáticamente. Reintenta la conexión.", true);
+                }
             };
             Resize += (_, __) => ScheduleViewportSync();
             ResizeEnd += (_, __) => ScheduleViewportSync();
             Activated += (_, __) => ScheduleViewportSync();
+            VisibleChanged += (_, __) => ScheduleViewportSync();
+            SizeChanged += (_, __) => ScheduleViewportSync();
+            DpiChanged += (_, __) => ScheduleViewportSync();
 
             _loadingPanel = new Panel
             {
@@ -278,6 +313,8 @@ namespace AurumConect
                     _startupTimer.Dispose();
                     _viewportSyncTimer.Stop();
                     _viewportSyncTimer.Dispose();
+                    _processRecoveryTimer.Stop();
+                    _processRecoveryTimer.Dispose();
                     if (_controller != null)
                     {
                         _controller.Close();
@@ -405,6 +442,7 @@ namespace AurumConect
                     if (args.IsSuccess)
                     {
                         _browserReady = true;
+                        _processRecoveryAttempts = 0;
                         _loadingPanel.Visible = false;
                         _controller.IsVisible = true;
                         WriteLog("Navegación completada: " + args.WebErrorStatus);
@@ -421,7 +459,18 @@ namespace AurumConect
                 {
                     string message = "El proceso Chromium falló: " + args.ProcessFailedKind;
                     WriteLog(message);
-                    SetStatus(message + " Inténtalo nuevamente.", true);
+                    _browserReady = false;
+                    if (_processRecoveryAttempts < 2)
+                    {
+                        _processRecoveryAttempts++;
+                        SetStatus(message + " Recuperando el visor automáticamente…", false);
+                        _processRecoveryTimer.Stop();
+                        _processRecoveryTimer.Start();
+                    }
+                    else
+                    {
+                        SetStatus(message + " Se agotaron los reintentos automáticos. Puedes reintentar la conexión.", true);
+                    }
                 };
                 core.NewWindowRequested += (_, args) =>
                 {
@@ -450,7 +499,9 @@ namespace AurumConect
         private void ScheduleViewportSync()
         {
             if (IsDisposed || Disposing || _viewportSyncTimer == null) return;
+            _viewportSyncPassesRemaining = Math.Max(_viewportSyncPassesRemaining, 3);
             _viewportSyncTimer.Stop();
+            _viewportSyncTimer.Interval = 140;
             _viewportSyncTimer.Start();
         }
 
