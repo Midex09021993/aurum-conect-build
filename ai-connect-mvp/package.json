@@ -1,0 +1,20 @@
+{
+  "name": "aurum-ai-connect-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB,MCP -c blue,green,yellow \"npm:dev:server\" \"npm:dev:web\" \"npm:dev:mcp\"",
+    "dev:server": "npm --workspace @aurum/server run dev",
+    "dev:web": "npm --workspace @aurum/web run dev",
+    "dev:mcp": "npm --workspace @aurum/mcp-server run dev",
+    "build": "npm --workspace @aurum/web run build && npm --workspace @aurum/server run typecheck && npm --workspace @aurum/mcp-server run typecheck",
+    "test": "npm --workspace @aurum/contracts test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3",
+    "tsx": "^4.20.6"
+  }
+}
