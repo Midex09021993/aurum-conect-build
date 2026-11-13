@@ -42,7 +42,9 @@ wss.on("connection", (socket) => {
   });
 
   socket.on("close", () => {
-    if (viewport === socket) viewport = null;
+    // A replaced viewport must not cancel commands already sent to its successor.
+    if (viewport !== socket) return;
+    viewport = null;
     for (const [id, item] of pending) {
       clearTimeout(item.timer);
       item.resolve({ commandId: id, success: false, error: "Viewport disconnected", sceneRevision });
