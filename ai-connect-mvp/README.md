@@ -81,7 +81,7 @@ El proceso MCP usa stdio; no escribas logs en stdout. El servidor API debe estar
 
 ## Scripts
 
-- `npm run dev`: inicia API, frontend y MCP en paralelo.
+- `npm run dev`: inicia API y frontend. El host MCP inicia el proceso `dev:mcp` cuando se conecta.
 - `npm run build`: compila frontend y comprueba TypeScript del backend/MCP.
 - `npm test`: pruebas unitarias del contrato geométrico.
 
