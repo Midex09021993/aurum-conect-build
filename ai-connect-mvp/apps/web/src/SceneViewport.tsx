@@ -120,17 +120,36 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
       }
     };
 
-    const socket = new WebSocket("ws://127.0.0.1:4317/scene");
-    socket.addEventListener("open", () => { onConnectionChange(true); onActivity("Viewport conectado al backend"); });
-    socket.addEventListener("close", () => onConnectionChange(false));
-    socket.addEventListener("error", () => onConnectionChange(false));
-    socket.addEventListener("message", event => {
-      let command: SceneCommand;
-      try { command = JSON.parse(String(event.data)) as SceneCommand; }
-      catch { return; }
-      const ack = handleCommand(command);
-      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(ack));
-    });
+    let socket: WebSocket | null = null;
+    let reconnectTimer: number | undefined;
+    let reconnectAttempt = 0;
+    const connect = () => {
+      if (disposed) return;
+      const currentSocket = new WebSocket("ws://127.0.0.1:4317/scene");
+      socket = currentSocket;
+      currentSocket.addEventListener("open", () => {
+        reconnectAttempt = 0;
+        onConnectionChange(true);
+        onActivity("Viewport conectado al backend");
+      });
+      currentSocket.addEventListener("close", () => {
+        onConnectionChange(false);
+        if (!disposed) {
+          reconnectAttempt += 1;
+          const delay = Math.min(5000, 500 * 2 ** Math.min(reconnectAttempt - 1, 3));
+          reconnectTimer = window.setTimeout(connect, delay);
+        }
+      });
+      currentSocket.addEventListener("error", () => onConnectionChange(false));
+      currentSocket.addEventListener("message", event => {
+        let command: SceneCommand;
+        try { command = JSON.parse(String(event.data)) as SceneCommand; }
+        catch { return; }
+        const ack = handleCommand(command);
+        if (currentSocket.readyState === WebSocket.OPEN) currentSocket.send(JSON.stringify(ack));
+      });
+    };
+    connect();
 
     const resize = () => {
       if (!host || disposed) return;
@@ -154,7 +173,8 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
       disposed = true;
       cancelAnimationFrame(frame);
       observer.disconnect();
-      socket.close();
+      if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+      socket?.close();
       for (const { mesh } of objects.values()) {
         mesh.geometry.dispose();
         const material = mesh.material;
