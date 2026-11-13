@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "concurrently -k -n API,WEB,MCP -c blue,green,yellow \"npm:dev:server\" \"npm:dev:web\" \"npm:dev:mcp\"",
+    "dev": "concurrently -k -n API,WEB -c blue,green \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "npm --workspace @aurum/server run dev",
     "dev:web": "npm --workspace @aurum/web run dev",
     "dev:mcp": "npm --workspace @aurum/mcp-server run dev",
