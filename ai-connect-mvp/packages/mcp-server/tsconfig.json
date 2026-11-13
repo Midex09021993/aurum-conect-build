@@ -7,7 +7,13 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "../contracts/src/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "../contracts/src/**/*.ts"
+  ]
 }
