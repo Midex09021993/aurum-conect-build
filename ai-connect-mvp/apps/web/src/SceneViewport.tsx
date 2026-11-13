@@ -22,8 +22,7 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
     camera.position.set(90, 75, 110);
     camera.lookAt(0, 0, 0);
     const controls = new OrbitControls(camera, host);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
+    controls.enableDamping = false;
     controls.minDistance = 15;
     controls.maxDistance = 800;
 
@@ -47,6 +46,12 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
     let revision = 0;
     let frame = 0;
     let disposed = false;
+    const renderScene = () => {
+      if (disposed) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => renderer.render(scene, camera));
+    };
+    controls.addEventListener("change", renderScene);
 
     const updateObjects = () => onObjectsChange([...objects.values()].map(({ record }) => ({
       ...record,
@@ -120,6 +125,7 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
         }
         revision += 1;
         updateObjects();
+        renderScene();
         return { commandId: command.commandId, success: true, result, sceneRevision: revision };
       } catch (error) {
         return { commandId: command.commandId, success: false, error: error instanceof Error ? error.message : "Error de escena", sceneRevision: revision };
@@ -164,23 +170,20 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
+      renderScene();
     };
     const observer = new ResizeObserver(resize);
     observer.observe(host);
 
-    const animate = () => {
-      if (disposed) return;
-      frame = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    animate();
+    renderScene();
 
     return () => {
       disposed = true;
       cancelAnimationFrame(frame);
       observer.disconnect();
+      controls.removeEventListener("change", renderScene);
       controls.dispose();
+      cancelAnimationFrame(frame);
       grid.geometry.dispose();
       const gridMaterial = grid.material;
       if (Array.isArray(gridMaterial)) gridMaterial.forEach(m => m.dispose()); else gridMaterial.dispose();
