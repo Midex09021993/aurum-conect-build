@@ -49,7 +49,7 @@ export default function App() {
       const parsed: unknown = JSON.parse(commandText);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("El JSON debe ser un objeto.");
       const command = parsed as { operation?: Operation; payload?: unknown };
-      if (!command.operation || !(command.operation in endpoint)) throw new Error("Operación no reconocida. Usa una de las seis herramientas disponibles.");
+      if (!command.operation || !Object.prototype.hasOwnProperty.call(endpoint, command.operation)) throw new Error("Operación no reconocida. Usa una de las seis herramientas disponibles.");
       if (!command.payload || typeof command.payload !== "object" || Array.isArray(command.payload)) throw new Error("Falta un objeto payload válido.");
       const response = await fetch(`http://127.0.0.1:4317${endpoint[command.operation]}`, {
         method: "POST",
