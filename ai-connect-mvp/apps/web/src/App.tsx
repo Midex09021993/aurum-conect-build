@@ -19,7 +19,21 @@ const starterCommand = JSON.stringify({
   payload: { diameterMm: 20, center: { x: 0, y: 0, z: 0 } }
 }, null, 2);
 
-const chatPrompt = "Convierte mi instrucción en una operación para AURUM AI CONNECT. Devuelve ÚNICAMENTE un JSON válido con esta estructura: { \"operation\": \"create_sphere|create_box|create_cylinder|move_object|delete_object|list_objects\", \"payload\": { ... } }. Usa milímetros. Para mover o eliminar, primero solicita list_objects si no conoces el objectId. Para delete_object incluye confirm: true. No inventes IDs.";
+const chatPrompt = `Eres el intérprete de instrucciones de AURUM AI CONNECT. Convierte mi petición en UNA operación y devuelve únicamente JSON válido, sin Markdown ni explicaciones.
+Formato:
+{
+  "operation": "create_sphere | create_box | create_cylinder | move_object | delete_object | list_objects",
+  "payload": {}
+}
+Reglas:
+- Todas las dimensiones y coordenadas están en milímetros.
+- create_sphere: diameterMm positivo; center {x,y,z} opcional.
+- create_box: widthMm, depthMm y heightMm positivos.
+- create_cylinder: radiusMm y heightMm positivos; topRadiusMm opcional.
+- move_object: objectId, translation {x,y,z}, mode "relative" o "absolute".
+- delete_object: objectId y confirm true.
+- list_objects: includeTransforms true.
+- Nunca inventes objectId. Si no conoces el ID, devuelve primero list_objects y espera a que te comparta su resultado.`;
 
 export default function App() {
   const [objects, setObjects] = useState<SceneObjectRecord[]>([]);
