@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import {
   createSphereSchema, createBoxSchema, createCylinderSchema,
   moveObjectSchema, deleteObjectSchema, listObjectsSchema,
-  type SceneCommand, type SceneCommandAck, type SceneCommandName
+  type SceneCommand, type SceneCommandAck, type SceneCommandName, type SceneObjectRecord
 } from "../../../packages/contracts/src/index.ts";
 
 const HOST = "127.0.0.1";
@@ -44,7 +44,7 @@ wss.on("connection", (socket) => {
     if (!item) return;
     clearTimeout(item.timer);
     pending.delete(ack.commandId);
-    if (ack.success) sceneRevision = Math.max(sceneRevision + 1, ack.sceneRevision);
+    if (ack.success) sceneRevision = Math.max(sceneRevision, ack.sceneRevision);
     item.resolve(ack);
   });
 
@@ -59,6 +59,33 @@ wss.on("connection", (socket) => {
     }
   });
 });
+
+async function resolveObjectId(selector: {
+  objectId?: string;
+  objectName?: string;
+  objectType?: "sphere" | "box" | "cylinder";
+}): Promise<string> {
+  if (selector.objectId) return selector.objectId;
+
+  const inventory = await dispatch("list_objects", { includeTransforms: true }) as {
+    objects?: SceneObjectRecord[];
+  };
+  const objects = inventory.objects ?? [];
+  const candidates = objects.filter(object => {
+    if (selector.objectName) return object.name.trim().toLocaleLowerCase() === selector.objectName.trim().toLocaleLowerCase();
+    return object.type === selector.objectType;
+  });
+
+  if (candidates.length === 0) {
+    const target = selector.objectName ?? selector.objectType ?? "objeto";
+    throw new Error(`No se encontró "${target}" en la escena. Consulta list_objects y verifica el nombre.`);
+  }
+  if (candidates.length > 1) {
+    const names = candidates.map(object => object.name).join(", ");
+    throw new Error(`La selección "${selector.objectType ?? selector.objectName}" es ambigua. Coincidencias: ${names}. Usa objectName para elegir uno.`);
+  }
+  return candidates[0].id;
+}
 
 async function dispatch(operation: SceneCommandName, payload: unknown) {
   const run = async () => {
@@ -97,8 +124,16 @@ app.get("/health", async () => ({
 app.post("/commands/create-sphere", async (request) => dispatch("create_sphere", createSphereSchema.parse(request.body)));
 app.post("/commands/create-box", async (request) => dispatch("create_box", createBoxSchema.parse(request.body)));
 app.post("/commands/create-cylinder", async (request) => dispatch("create_cylinder", createCylinderSchema.parse(request.body)));
-app.post("/commands/move-object", async (request) => dispatch("move_object", moveObjectSchema.parse(request.body)));
-app.post("/commands/delete-object", async (request) => dispatch("delete_object", deleteObjectSchema.parse(request.body)));
+app.post("/commands/move-object", async (request) => {
+  const input = moveObjectSchema.parse(request.body);
+  const objectId = await resolveObjectId(input);
+  return dispatch("move_object", { objectId, translation: input.translation, mode: input.mode });
+});
+app.post("/commands/delete-object", async (request) => {
+  const input = deleteObjectSchema.parse(request.body);
+  const objectId = await resolveObjectId(input);
+  return dispatch("delete_object", { objectId, confirm: input.confirm });
+});
 app.post("/commands/list-objects", async (request) => dispatch("list_objects", listObjectsSchema.parse(request.body)));
 
 app.setErrorHandler((error, _request, reply) => {
