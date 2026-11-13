@@ -25,14 +25,21 @@ export const createCylinderSchema = z.object({
   center: vec3Schema.optional()
 });
 
-export const moveObjectSchema = z.object({
-  objectId: z.string().min(1).max(128),
+const objectSelectorSchema = z.object({
+  objectId: z.string().min(1).max(128).optional(),
+  objectName: z.string().trim().min(1).max(128).optional(),
+  objectType: z.enum(["sphere", "box", "cylinder"]).optional()
+}).refine(
+  value => [value.objectId, value.objectName, value.objectType].filter(Boolean).length === 1,
+  { message: "Indica exactamente uno: objectId, objectName u objectType." }
+);
+
+export const moveObjectSchema = objectSelectorSchema.extend({
   translation: vec3Schema,
   mode: z.enum(["relative", "absolute"]).default("relative")
 });
 
-export const deleteObjectSchema = z.object({
-  objectId: z.string().min(1).max(128),
+export const deleteObjectSchema = objectSelectorSchema.extend({
   confirm: z.literal(true)
 });
 
