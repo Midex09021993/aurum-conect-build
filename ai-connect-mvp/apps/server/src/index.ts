@@ -20,7 +20,14 @@ let sceneRevision = 0;
 const pending = new Map<string, { resolve: (ack: SceneCommandAck) => void; timer: NodeJS.Timeout }>();
 let commandQueue = Promise.resolve();
 
-const wss = new WebSocketServer({ server: app.server, path: "/scene" });
+const allowedOrigins = new Set(["http://127.0.0.1:5173", "http://localhost:5173"]);
+const wss = new WebSocketServer({
+  server: app.server,
+  path: "/scene",
+  verifyClient: (info, done) => {
+    done(allowedOrigins.has(info.origin), 403, "Origin not allowed");
+  }
+});
 wss.on("connection", (socket) => {
   if (viewport && viewport.readyState === WebSocket.OPEN) viewport.close(4001, "Viewport replaced");
   viewport = socket;
