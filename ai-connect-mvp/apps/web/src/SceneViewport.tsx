@@ -123,7 +123,7 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
           result = { objects: [...objects.values()].map(({ record }) => record) };
           onActivity(`Inventario consultado · ${objects.size} objetos`);
         }
-        revision += 1;
+        if (command.operation !== "list_objects") revision += 1;
         updateObjects();
         renderScene();
         return { commandId: command.commandId, success: true, result, sceneRevision: revision };
