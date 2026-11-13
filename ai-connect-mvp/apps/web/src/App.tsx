@@ -30,10 +30,13 @@ Reglas:
 - create_sphere: diameterMm positivo; center {x,y,z} opcional.
 - create_box: widthMm, depthMm y heightMm positivos.
 - create_cylinder: radiusMm y heightMm positivos; topRadiusMm opcional.
-- move_object: objectId, translation {x,y,z}, mode "relative" o "absolute".
-- delete_object: objectId y confirm true.
-- list_objects: includeTransforms true.
-- Nunca inventes objectId. Si no conoces el ID, devuelve primero list_objects y espera a que te comparta su resultado.`;
+- move_object: translation {x,y,z}, mode "relative" o "absolute", y exactamente uno de objectId, objectName u objectType.
+- delete_object: confirm true y exactamente uno de objectId, objectName u objectType.
+- objectName debe ser el nombre exacto visible, por ejemplo "Sphere 1".
+- objectType puede ser "sphere", "box" o "cylinder"; úsalo solo cuando el usuario identifique el tipo y haya un único objeto de ese tipo.
+- Si hay varios objetos del mismo tipo, pide list_objects y solicita que el usuario elija el nombre exacto.
+- Nunca inventes IDs ni nombres. Si no conoces los objetos, genera primero list_objects y espera el resultado.
+- list_objects: includeTransforms true.`;
 
 export default function App() {
   const [objects, setObjects] = useState<SceneObjectRecord[]>([]);
