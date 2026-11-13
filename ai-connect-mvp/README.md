@@ -44,6 +44,24 @@ npm run dev:mcp
 - API: http://127.0.0.1:4317/health
 - WebSocket: ws://127.0.0.1:4317/scene
 
+## Puente manual con ChatGPT Web (sin API)
+
+1. Abre ChatGPT en el navegador y solicita que convierta tu instrucción a una operación JSON para AURUM AI CONNECT.
+2. En el panel "PUENTE CHATGPT WEB", copia la instrucción de sistema que ofrece el botón.
+3. Pega el JSON devuelto en el editor y pulsa "Ejecutar en la escena".
+4. El frontend solo admite las seis operaciones declaradas; el backend valida sus parámetros y espera el ACK del viewport.
+
+Ejemplo de payload:
+
+```json
+{
+  "operation": "create_sphere",
+  "payload": { "diameterMm": 20, "center": { "x": 0, "y": 0, "z": 0 } }
+}
+```
+
+Este puente es manual: no conecta ChatGPT automáticamente ni consume API/tokens de OpenAI. ChatGPT genera el JSON en su interfaz web; el usuario lo copia a la aplicación local.
+
 ## Conectar un agente MCP
 
 Ejemplo de configuración de cliente MCP local (ajusta la ruta absoluta):
