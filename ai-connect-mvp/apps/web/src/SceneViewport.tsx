@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { SceneCommand, SceneCommandAck, SceneObjectRecord, Vec3 } from "../../../packages/contracts/src/index";
 
 interface Props {
@@ -20,6 +21,11 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
     camera.position.set(90, 75, 110);
     camera.lookAt(0, 0, 0);
+    const controls = new OrbitControls(camera, host);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 15;
+    controls.maxDistance = 800;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -165,6 +171,7 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
     const animate = () => {
       if (disposed) return;
       frame = requestAnimationFrame(animate);
+      controls.update();
       renderer.render(scene, camera);
     };
     animate();
@@ -173,6 +180,13 @@ export function SceneViewport({ onObjectsChange, onConnectionChange, onActivity 
       disposed = true;
       cancelAnimationFrame(frame);
       observer.disconnect();
+      controls.dispose();
+      grid.geometry.dispose();
+      const gridMaterial = grid.material;
+      if (Array.isArray(gridMaterial)) gridMaterial.forEach(m => m.dispose()); else gridMaterial.dispose();
+      axes.geometry.dispose();
+      const axesMaterial = axes.material;
+      if (Array.isArray(axesMaterial)) axesMaterial.forEach(m => m.dispose()); else axesMaterial.dispose();
       if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
       socket?.close();
       for (const { mesh } of objects.values()) {
